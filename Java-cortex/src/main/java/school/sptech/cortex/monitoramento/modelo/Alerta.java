@@ -2,6 +2,7 @@ package school.sptech.cortex.monitoramento.modelo;
 
 public class Alerta {
         private final String tipo; // Ex: "CRÍTICO", "ATENÇÃO", "PREDITIVO"
+        private final String nomeEmpresa;
         private final String hostname;
         private final String ip;
         private final String tipoMetrica; // Ex: CPU, RAM, Disco
@@ -9,8 +10,9 @@ public class Alerta {
         private final double limite;
         private final String timestamp; // Para facilitar a formatação no Slack/Jira
 
-        public Alerta(String tipo, String hostname, String ip, String tipoMetrica, double valorAtual, double limite, String timestamp) {
+        public Alerta(String tipo, String nomeEmpresa,String hostname, String ip, String tipoMetrica, double valorAtual, double limite, String timestamp) {
             this.tipo = tipo;
+            this.nomeEmpresa = nomeEmpresa;
             this.hostname = hostname;
             this.ip = ip;
             this.tipoMetrica = tipoMetrica;
@@ -25,7 +27,9 @@ public class Alerta {
             return tipo;
         }
 
-        public String getHostname() {
+    public String getNomeEmpresa() { return nomeEmpresa; }
+
+    public String getHostname() {
             return hostname;
         }
 
@@ -51,7 +55,7 @@ public class Alerta {
 
         @Override
         public String toString() {
-            return String.format("[%s] Máquina %s (%s): %s em %.2f%% (Limite: %.2f%%) em %s",
-                    tipo, hostname, ip, tipoMetrica, valorAtual, limite, timestamp);
+            return String.format("%s - [%s] Máquina %s (%s): %s em %.2f%% (Limite: %.2f%%) em %s",
+                    nomeEmpresa, tipo, hostname, ip, tipoMetrica, valorAtual, limite, timestamp);
         }
 }
