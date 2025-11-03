@@ -104,6 +104,7 @@ public class ProcessadorDeCapturasService {
 
             Alerta novoAlerta = new Alerta(
                     tipoAlerta,
+                    limitesDaMaquina.getNomeEmpresa(),
                     captura.getHostname(),
                     captura.getIp(),
                     componente,
