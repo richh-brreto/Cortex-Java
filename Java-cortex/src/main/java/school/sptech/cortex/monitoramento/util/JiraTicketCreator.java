@@ -2,6 +2,7 @@ package school.sptech.cortex.monitoramento.util;
 
 
 import school.sptech.cortex.monitoramento.modelo.Alerta;
+import school.sptech.cortex.monitoramento.modelo.Parametro;
 
 import java.io.IOException;
 import java.net.URI;
@@ -27,7 +28,6 @@ public class JiraTicketCreator {
     private final String jiraAssigneeEmail;
 
     private final HttpClient httpClient;
-
 
     public JiraTicketCreator() {
         // Leitura das configurações
@@ -71,8 +71,8 @@ public class JiraTicketCreator {
 
             try {
                 // 2. Formata a mensagem de negócio para o Jira
-                String summary = String.format("ALERTA CRÍTICO: %s em %.2f%% na máquina %s:%s",
-                        alerta.getTipoMetrica(), alerta.getValorAtual(), alerta.getIp(), alerta.getHostname());
+                String summary = String.format("%s! ALERTA CRÍTICO: %s em %.2f%% na máquina %s:%s",
+                        alerta.getNomeEmpresa(), alerta.getTipoMetrica(), alerta.getValorAtual(), alerta.getIp(), alerta.getHostname());
 
                 String description = String.format(
                         "Alerta de Utilização Crítica - Cortex\n\n" +
