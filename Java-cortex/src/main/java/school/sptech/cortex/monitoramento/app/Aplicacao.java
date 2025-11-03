@@ -3,6 +3,7 @@ package school.sptech.cortex.monitoramento.app;
 
 import school.sptech.cortex.monitoramento.dao.LimiteDAO;
 import school.sptech.cortex.monitoramento.modelo.Alerta;
+import school.sptech.cortex.monitoramento.modelo.CapturaProcesso;
 import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
 import school.sptech.cortex.monitoramento.modelo.Parametro;
 import school.sptech.cortex.monitoramento.service.ProcessadorDeCapturasService;
@@ -14,6 +15,8 @@ public class Aplicacao {
     // Caminho do arquivo CSV que contém as capturas de dados da máquina
     private static final String ARQUIVO_CSV = ConfiguracaoAmbiente.get("CAMINHO_CSV");
     private static final String ARQUIVO_CSV_EXPORT = ConfiguracaoAmbiente.get("CAMINHO_CSV_EXPORT");
+    private static final String ARQUIVO_CSV_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_PROCESSO");
+    private static final String ARQUIVO_CSV_EXPORT_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_EXPORT_PROCESSO");
 
     public static void main(String[] args) {
         System.out.println("=================================================");
@@ -38,6 +41,20 @@ public class Aplicacao {
             System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", ARQUIVO_CSV_EXPORT);
             CsvWriter csvWriter = new CsvWriter();
             csvWriter.exportarCapturasSistema(capturas, ARQUIVO_CSV_EXPORT);
+        }
+
+        System.out.printf("\n[1] Lendo capturas do arquivo: %s%n", ARQUIVO_CSV);
+        List<CapturaProcesso> capturaProcessos = new CsvProcessoReader().lerECarregarCapturasProcesso(ARQUIVO_CSV_PROCESSO);
+
+        if (capturas.isEmpty()) {
+            System.out.println("Nenhuma captura válida encontrada. Finalizando aplicação.");
+            return;
+        }
+
+        if (capturas != null) {
+            System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", ARQUIVO_CSV_EXPORT);
+            CsvProcessoWriter csvProcessoWriter = new CsvProcessoWriter();
+            csvProcessoWriter.exportarCapturasProcesso(capturaProcessos, ARQUIVO_CSV_EXPORT_PROCESSO);
         }
 
         // Pega os dados da primeira captura para buscar os limites no banco
