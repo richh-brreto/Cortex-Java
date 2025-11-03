@@ -10,7 +10,7 @@ import java.sql.SQLException;
 
 public class LimiteDAO {
     private static final String SQL_SELECT_LIMITES =
-            "SELECT e.id id_empresa, e.nome nome_empresa, zd.nome nome_zona, md.id_modelo, \n" +
+            "SELECT e.nome nome_empresa, md.id_modelo, \n" +
                     "md.nome nome_modelo, ip ip_modelo, hostname hostname_modelo, \n" +
                     "tempo_parametro_min tempo_min, limite_cpu, limite_disco, \n" +
                     "limite_ram, limite_gpu FROM modelo md\n" +
@@ -32,12 +32,13 @@ public class LimiteDAO {
                     // Mapeia o resultado do banco para o POJO Parametro (usando Wrappers)
                     limites = new Parametro(
                             rs.getObject("id_modelo", Integer.class),
+                            rs.getString("nome_empresa"),
                             rs.getString("nome_modelo"),
                             rs.getString("ip_modelo"),
                             rs.getString("hostname_modelo"),
                             rs.getObject("limite_cpu", Double.class),
                             rs.getObject("limite_ram", Double.class),
-                            rs.getObject("limite_disco_uso", Double.class),
+                            rs.getObject("limite_disco", Double.class),
                             rs.getObject("limite_gpu", Double.class),
                             rs.getObject("tempo_min", Integer.class)
                     );
