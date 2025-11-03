@@ -1,6 +1,7 @@
 package school.sptech.cortex.monitoramento.util;
 
 import school.sptech.cortex.monitoramento.modelo.Alerta;
+import school.sptech.cortex.monitoramento.modelo.Parametro;
 
 import java.io.IOException;
 import java.net.URI;
@@ -48,9 +49,10 @@ public class SlackNotifier {
 
         // Constrói o cabeçalho da mensagem
         String cabecalho = String.format(
-                ":robot_face: *Monitoramento Cortex: Novo Lote de Alertas*\n" +
+                ":robot_face: *Monitoramento Cortex: Novo Lote de Alertas para %s*\n" +
                         ":computer: Máquina: `%s:%s`\n\n" +
                         "*Detalhes dos Alertas:*\n",
+                primeiroAlerta.getNomeEmpresa(),
                 primeiroAlerta.getIp(),
                 primeiroAlerta.getHostname()
         );
