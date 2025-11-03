@@ -71,18 +71,18 @@ public class JiraTicketCreator {
 
             try {
                 // 2. Formata a mensagem de negócio para o Jira
-                String summary = String.format("%s! ALERTA CRÍTICO: %s em %.2f%% na máquina %s:%s",
-                        alerta.getNomeEmpresa(), alerta.getTipoMetrica(), alerta.getValorAtual(), alerta.getIp(), alerta.getHostname());
+                String summary = String.format("%s! ALERTA CRÍTICO: %s em %.2f%% na máquina %s %s:%s",
+                        alerta.getNomeEmpresa(), alerta.getTipoMetrica(), alerta.getValorAtual(), alerta.getNomeModelo(), alerta.getIp(), alerta.getHostname());
 
                 String description = String.format(
                         "Alerta de Utilização Crítica - Cortex\n\n" +
-                                "A máquina %s:%s ultrapassou o limite crítico de %s.\n" +
+                                "A máquina: %s %s:%s ultrapassou o limite crítico de %s.\n" +
                                 "Detalhes do Alerta:\n" +
                                 "- Uso Atual: %.2f%%\n" +
                                 "- Limite Configurado: %.1f%%\n" +
                                 "- Timestamp: %s\n\n" +
                                 "Prioridade: %s. Ação Requerida Imediata.",
-                        alerta.getIp(), alerta.getHostname(), alerta.getTipoMetrica(),
+                        alerta.getNomeModelo(), alerta.getIp(), alerta.getHostname(), alerta.getTipoMetrica(),
                         alerta.getValorAtual(), alerta.getLimite(), alerta.getTimestamp(), jiraPriorityName
                 );
 
@@ -93,7 +93,7 @@ public class JiraTicketCreator {
                 enviarRequisicao(jsonPayload);
 
             } catch (Exception e) {
-                System.err.println("❌ ERRO ao processar Alerta para o Jira (" + alerta.getIp()+ ":" +alerta.getHostname() + "): " + e.getMessage());
+                System.err.println("❌ ERRO ao processar Alerta para o Jira (" + alerta.getNomeModelo() + " " + alerta.getIp()+ ":" +alerta.getHostname() + "): " + e.getMessage());
             }
         }
 

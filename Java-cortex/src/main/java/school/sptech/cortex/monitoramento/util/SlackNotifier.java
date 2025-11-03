@@ -50,9 +50,10 @@ public class SlackNotifier {
         // Constrói o cabeçalho da mensagem
         String cabecalho = String.format(
                 ":robot_face: *Monitoramento Cortex: Novo Lote de Alertas para %s*\n" +
-                        ":computer: Máquina: `%s:%s`\n\n" +
+                        ":computer: Máquina: %s `%s:%s`\n\n" +
                         "*Detalhes dos Alertas:*\n",
                 primeiroAlerta.getNomeEmpresa(),
+                primeiroAlerta.getNomeModelo(),
                 primeiroAlerta.getIp(),
                 primeiroAlerta.getHostname()
         );
@@ -95,8 +96,8 @@ public class SlackNotifier {
     private String getEmojiByTipo(String tipo) {
         return switch (tipo.toUpperCase()) {
             case "CRÍTICO" -> ":fire:";
-            case "ATENÇÃO" -> ":warning:";
-            case "PREDITIVO" -> ":large_orange_diamond:";
+            case "IMPORTANTE" -> ":warning:";
+            case "ATENÇÃO" -> ":large_orange_diamond:";
             default -> ":information_source:";
         };
     }
