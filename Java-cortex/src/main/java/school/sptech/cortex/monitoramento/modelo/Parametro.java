@@ -2,6 +2,7 @@ package school.sptech.cortex.monitoramento.modelo;
 
 public class Parametro {
     private Integer id;
+    private String nomeEmpresa;
     private String nome;
     private String ip;
     private String hostname;
@@ -11,8 +12,9 @@ public class Parametro {
     private Double limiteGpu;
     private Integer tempoParametroMin;
 
-    public Parametro(Integer id, String nome, String ip, String hostname, Double limiteCpu, Double limiteRam, Double limiteDiscoUso, Double limiteGpu, Integer tempoParametroMin) {
+    public Parametro(Integer id, String nomeEmpresa, String nome, String ip, String hostname, Double limiteCpu, Double limiteRam, Double limiteDiscoUso, Double limiteGpu, Integer tempoParametroMin) {
         this.id = id;
+        this.nomeEmpresa = nomeEmpresa;
         this.nome = nome;
         this.ip = ip;
         this.hostname = hostname;
@@ -21,6 +23,17 @@ public class Parametro {
         this.limiteDiscoUso = limiteDiscoUso;
         this.limiteGpu = limiteGpu;
         this.tempoParametroMin = tempoParametroMin;
+    }
+
+    public Parametro() {
+    }
+
+    public String getNomeEmpresa() {
+        return nomeEmpresa;
+    }
+
+    public void setNomeEmpresa(String nomeEmpresa) {
+        this.nomeEmpresa = nomeEmpresa;
     }
 
     public Integer getId() {
