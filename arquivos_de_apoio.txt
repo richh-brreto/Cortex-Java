@@ -1,0 +1,6 @@
+json: 
+            título: id modelo.json 
+            colunas: cpu (boolean), ram(boolean), disco(boolean), gpu(boolean), timestamp, id_ticket_jira       
+csv histórico:
+        título:id modelo;id ticket jira.csv
+        colunas: cpu(boolean), ram(boolean), dsico(boolean), gpu (boolean), %_cpu, % ram, %disco, %gpu, timestamp  

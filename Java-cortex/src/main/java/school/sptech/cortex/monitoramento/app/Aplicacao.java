@@ -18,6 +18,14 @@ public class Aplicacao {
     private static final String ARQUIVO_CSV_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_PROCESSO");
     private static final String ARQUIVO_CSV_EXPORT_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_EXPORT_PROCESSO");
 
+    // Caminhos dos arquivos de suporte
+    private static String JSON_ALERTA_PROVAVEL_CPU = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_cpu.json";
+    private static String JSON_ALERTA_PROVAVEL_RAM = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_ram.json";
+    private static String JSON_ALERTA_PROVAVEL_DISCO = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_disco.json";
+    private static String JSON_ALERTA_PROVAVEL_GPU = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_gpu.json";
+    private static String CSV_HISTORICO = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;CTX_41.csv";
+    private static String JSON_ESTADO_ATUAL = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1.json";
+
     public static void main(String[] args) {
         System.out.println("=================================================");
         System.out.println("   CORTEX - INICIANDO PROCESSO DE MONITORAMENTO  ");
@@ -27,6 +35,7 @@ public class Aplicacao {
             System.err.println("ERRO: Variável de ambiente 'CAMINHO_CSV' não configurada ou vazia.");
             return;
         }
+
 
         // 1. LEITURA E CARREGAMENTO DOS DADOS DO CSV
         System.out.printf("\n[1] Lendo capturas do arquivo: %s%n", ARQUIVO_CSV);
@@ -59,13 +68,12 @@ public class Aplicacao {
 
         // Pega os dados da primeira captura para buscar os limites no banco
         CapturaSistema primeiraCaptura = capturas.get(0);
-        String ipMaquina = primeiraCaptura.getIp();
-        String hostnameMaquina = primeiraCaptura.getHostname();
+        String id_modelo = primeiraCaptura.getFk_modelo();
 
         // 2. BUSCA DE LIMITES NO BANCO DE DADOS
-        System.out.printf("[2] Buscando limites de parâmetros para a máquina %s (%s)...%n", hostnameMaquina, ipMaquina);
+        System.out.printf("[2] Buscando limites de parâmetros para a máquina %s (%s)...%n", id_modelo);
         LimiteDAO limiteDAO = new LimiteDAO();
-        Parametro limitesDaMaquina = limiteDAO.buscarLimitesPorMaquina(ipMaquina, hostnameMaquina);
+        Parametro limitesDaMaquina = limiteDAO.buscarLimitesPorMaquina(id_modelo);
 
         if (limitesDaMaquina == null) {
             System.err.println("ERRO: Não foram encontrados limites de parâmetros para esta máquina no banco de dados.");
@@ -76,8 +84,7 @@ public class Aplicacao {
         // 3. PROCESSAMENTO DAS CAPTURAS E GERAÇÃO DE ALERTAS
         System.out.println("[3] Processando capturas e aplicando a regra de negócio...");
         ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService(limitesDaMaquina);
-        List<Alerta> alertasGerados = processador.processar(capturas);
-        System.out.printf("Processamento concluído. Total de %d alertas gerados.%n", alertasGerados.size());
+        System.out.printf("Processamento concluído. Total de %d alertas gerados.%n");
 
 
         if (!alertasGerados.isEmpty()) {
@@ -87,6 +94,7 @@ public class Aplicacao {
             System.out.println("\n[4.1] Enviando alertas para o Slack...");
             SlackNotifier slackNotifier = new SlackNotifier();
             slackNotifier.enviarAlertas(alertasGerados);
+
 
             // --- 4.2. CRIAÇÃO DE TICKETS JIRA (Envia APENAS alertas CRÍTICOS) ---
             System.out.println("\n[4.2] Verificando e criando tickets CRÍTICOS no Jira...");

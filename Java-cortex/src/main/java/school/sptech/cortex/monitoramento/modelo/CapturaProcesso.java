@@ -7,29 +7,29 @@ import java.time.LocalDateTime;
 
 public class CapturaProcesso {
     @CsvBindByPosition(position = 0)
-    private String ip;
+    private String fk_modelo;
 
     @CsvBindByPosition(position = 1)
-    private String hostname;
+    private String fk_zona;
 
     @CsvBindByPosition(position = 2)
+    private String fk_empresa;
+
+    @CsvBindByPosition(position = 3)
     @CsvDate(value = "yyyy-MM-dd_HH-mm-ss")
     private LocalDateTime timestamp;
 
-    @CsvBindByPosition(position = 3)
+    @CsvBindByPosition(position = 4)
     private String processo;
 
-    @CsvBindByPosition(position = 4)
+    @CsvBindByPosition(position = 5)
     private Double cpu;
 
-    @CsvBindByPosition(position = 5)
+    @CsvBindByPosition(position = 6)
     private Double ram;
 
-    @CsvBindByPosition(position = 6)
-    private Double dadosGravados;
-
     @CsvBindByPosition(position = 7)
-    private String mac;
+    private Double dadosGravados;
 
     @CsvBindByPosition(position = 8)
     private Double gpu;
@@ -37,36 +37,44 @@ public class CapturaProcesso {
     @CsvBindByPosition(position = 9)
     private Double discoUso;
 
-    public CapturaProcesso(String ip, String hostname, LocalDateTime timestamp, String processo, Double cpu, Double ram, Double dadosGravados, String mac, Double gpu, Double discoUso) {
-        this.ip = ip;
-        this.hostname = hostname;
+    public CapturaProcesso() {
+    }
+
+    public CapturaProcesso(String fk_modelo, String fk_zona, String fk_empresa, LocalDateTime timestamp, String processo, Double cpu, Double ram, Double dadosGravados, Double gpu, Double discoUso) {
+        this.fk_modelo = fk_modelo;
+        this.fk_zona = fk_zona;
+        this.fk_empresa = fk_empresa;
         this.timestamp = timestamp;
         this.processo = processo;
         this.cpu = cpu;
         this.ram = ram;
         this.dadosGravados = dadosGravados;
-        this.mac = mac;
         this.gpu = gpu;
         this.discoUso = discoUso;
     }
 
-    public CapturaProcesso() {
+    public String getFk_modelo() {
+        return fk_modelo;
     }
 
-    public String getIp() {
-        return ip;
+    public void setFk_modelo(String fk_modelo) {
+        this.fk_modelo = fk_modelo;
     }
 
-    public void setIp(String ip) {
-        this.ip = ip;
+    public String getFk_zona() {
+        return fk_zona;
     }
 
-    public String getHostname() {
-        return hostname;
+    public void setFk_zona(String fk_zona) {
+        this.fk_zona = fk_zona;
     }
 
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
+    public String getFk_empresa() {
+        return fk_empresa;
+    }
+
+    public void setFk_empresa(String fk_empresa) {
+        this.fk_empresa = fk_empresa;
     }
 
     public LocalDateTime getTimestamp() {
@@ -107,14 +115,6 @@ public class CapturaProcesso {
 
     public void setDadosGravados(Double dadosGravados) {
         this.dadosGravados = dadosGravados;
-    }
-
-    public String getMac() {
-        return mac;
-    }
-
-    public void setMac(String mac) {
-        this.mac = mac;
     }
 
     public Double getGpu() {

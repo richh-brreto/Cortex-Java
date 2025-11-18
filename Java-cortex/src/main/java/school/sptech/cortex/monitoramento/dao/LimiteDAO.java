@@ -16,16 +16,15 @@ public class LimiteDAO {
                     "limite_ram, limite_gpu FROM modelo md\n" +
                     "INNER JOIN zonadisponibilidade zd ON zd.id_zona = md.fk_zona_disponibilidade\n" +
                     "INNER JOIN empresa e ON e.id = zd.fk_empresa\n" +
-                    "WHERE md.ip = ? AND md.hostname = ?";
+                    "WHERE md.id_modelo = ?";
 
-    public Parametro buscarLimitesPorMaquina(String ip, String hostname) {
+    public Parametro buscarLimitesPorMaquina(String id_modelo) {
         Parametro limites = null;
 
         try (Connection conn = MySQLConnection.conectar();
              PreparedStatement pstmt = conn.prepareStatement(SQL_SELECT_LIMITES)) {
 
-            pstmt.setString(1, ip);
-            pstmt.setString(2, hostname);
+            pstmt.setString(1, id_modelo);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {

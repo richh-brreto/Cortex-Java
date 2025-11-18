@@ -7,71 +7,60 @@ import java.time.LocalDateTime;
 
 public class CapturaSistema {
     @CsvBindByPosition(position = 0)
-    private String fk_modelo;
+    private String ip;
 
     @CsvBindByPosition(position = 1)
-    private String fk_zona;
+    private String hostname;
 
     @CsvBindByPosition(position = 2)
-    private String fk_empresa;
+    @CsvDate(value = "yyyy-MM-dd_HH-mm-ss")
+    private LocalDateTime ultimo_alerta_timestamp;
 
     @CsvBindByPosition(position = 3)
-    @CsvDate(value = "yyyy-MM-dd_HH-mm-ss")
-    private LocalDateTime timestamp;
+    private Double id_jira;
 
-    @CsvBindByPosition(position = 4)
-    private Double cpu; // Uso de CPU em %
 
     @CsvBindByPosition(position = 5)
-    private Double ram; // Uso de RAM em %
-
-    @CsvBindByPosition(position = 6)
     private Double armazenamento; // Uso de Armazenamento em %
 
-    @CsvBindByPosition(position = 7)
+    @CsvBindByPosition(position = 6)
     private Double discoUso; // Uso de Disco em %
 
-    @CsvBindByPosition(position = 9)
+    @CsvBindByPosition(position = 7)
+    private String mac;
+
+    @CsvBindByPosition(position = 8)
     private Double gpu; // Uso de GPU em %
 
-    public CapturaSistema(String fk_modelo, String fk_zona, String fk_empresa, LocalDateTime timestamp, Double cpu, Double ram, Double armazenamento, Double discoUso, Double gpu) {
-        this.fk_modelo = fk_modelo;
-        this.fk_zona = fk_zona;
-        this.fk_empresa = fk_empresa;
+    public CapturaSistema(String ip, String hostname, LocalDateTime timestamp, Double cpu, Double ram, Double armazenamento, Double discoUso, String mac, Double gpu) {
+        this.ip = ip;
+        this.hostname = hostname;
         this.timestamp = timestamp;
         this.cpu = cpu;
         this.ram = ram;
         this.armazenamento = armazenamento;
         this.discoUso = discoUso;
+        this.mac = mac;
         this.gpu = gpu;
     }
 
     public CapturaSistema() {
     }
 
-
-    public String getFk_modelo() {
-        return fk_modelo;
+    public String getIp() {
+        return ip;
     }
 
-    public void setFk_modelo(String fk_modelo) {
-        this.fk_modelo = fk_modelo;
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 
-    public String getFk_zona() {
-        return fk_zona;
+    public String getHostname() {
+        return hostname;
     }
 
-    public void setFk_zona(String fk_zona) {
-        this.fk_zona = fk_zona;
-    }
-
-    public String getFk_empresa() {
-        return fk_empresa;
-    }
-
-    public void setFk_empresa(String fk_empresa) {
-        this.fk_empresa = fk_empresa;
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
     }
 
     public LocalDateTime getTimestamp() {
@@ -114,6 +103,14 @@ public class CapturaSistema {
         this.discoUso = discoUso;
     }
 
+    public String getMac() {
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
+    }
+
     public Double getGpu() {
         return gpu;
     }
@@ -122,17 +119,17 @@ public class CapturaSistema {
         this.gpu = gpu;
     }
 
-    @java.lang.Override
-    public java.lang.String toString() {
+    @Override
+    public String toString() {
         return "CapturaSistema{" +
-                "fk_modelo='" + fk_modelo + '\'' +
-                ", fk_zona='" + fk_zona + '\'' +
-                ", fk_empresa='" + fk_empresa + '\'' +
+                "ip='" + ip + '\'' +
+                ", hostname='" + hostname + '\'' +
                 ", timestamp=" + timestamp +
                 ", cpu=" + cpu +
                 ", ram=" + ram +
                 ", armazenamento=" + armazenamento +
                 ", discoUso=" + discoUso +
+                ", mac='" + mac + '\'' +
                 ", gpu=" + gpu +
                 '}';
     }
