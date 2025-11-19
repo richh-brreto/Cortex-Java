@@ -31,7 +31,7 @@ public class CapturaSistema {
     @CsvBindByPosition(position = 7)
     private Double discoUso; // Uso de Disco em %
 
-    @CsvBindByPosition(position = 9)
+    @CsvBindByPosition(position = 8)
     private Double gpu; // Uso de GPU em %
 
     public CapturaSistema(String fk_modelo, String fk_zona, String fk_empresa, LocalDateTime timestamp, Double cpu, Double ram, Double armazenamento, Double discoUso, Double gpu) {

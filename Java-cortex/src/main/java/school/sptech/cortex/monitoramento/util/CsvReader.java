@@ -40,10 +40,10 @@ public class CsvReader {
 
                 try {
                     // 1. EXTRAÇÃO E VALIDAÇÃO (NULO/VAZIO)
-                    String ip = validarString(dados[0], "IP", numeroLinha);
-                    String hostname = validarString(dados[1], "Hostname", numeroLinha);
-                    String timestampStr = validarString(dados[2], "Timestamp", numeroLinha); // String bruta do CSV
-                    String mac = validarString(dados[7], "MAC", numeroLinha);
+                    String fk_modelo = validarString(dados[0], "fk_modelo", numeroLinha);
+                    String fk_zona = validarString(dados[1], "fk_zona", numeroLinha);
+                    String fk_empresa = validarString(dados[2], "fk_empresa", numeroLinha);
+                    String timestampStr = validarString(dados[3], "Timestamp", numeroLinha); // String bruta do CSV
 
                     // 2. CONVERSÃO E VALIDAÇÃO NUMÉRICA
 
@@ -51,15 +51,15 @@ public class CsvReader {
                     LocalDateTime timestamp = LocalDateTime.parse(timestampStr, FORMATADOR_TIMESTAMP);
 
                     // Conversão e Validação de Range [0.0, 100.0]
-                    Double cpu = validarRange(dados[3], "CPU", numeroLinha);
-                    Double ram = validarRange(dados[4], "RAM", numeroLinha);
-                    Double armazenamento = validarRange(dados[5], "Armazenamento", numeroLinha);
-                    Double discoUso = validarRange(dados[6], "Disco Uso", numeroLinha);
+                    Double cpu = validarRange(dados[4], "CPU", numeroLinha);
+                    Double ram = validarRange(dados[5], "RAM", numeroLinha);
+                    Double armazenamento = validarRange(dados[6], "Armazenamento", numeroLinha);
+                    Double discoUso = validarRange(dados[7], "Disco Uso", numeroLinha);
                     Double gpu = validarRange(dados[8], "GPU", numeroLinha);
 
                     // 3. CRIAÇÃO DO OBJETO
                     CapturaSistema novaCaptura = new CapturaSistema(
-                            ip, hostname, timestamp, cpu, ram, armazenamento, discoUso, mac, gpu
+                            fk_modelo, fk_zona, fk_empresa, timestamp, cpu, ram, armazenamento, discoUso, gpu
                     );
                     capturas.add(novaCaptura);
 

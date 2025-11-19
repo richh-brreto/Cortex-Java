@@ -36,20 +36,21 @@ public class CsvProcessoReader {
 
                 try {
                     // 1. EXTRAÇÃO E VALIDAÇÃO BÁSICA
-                    String ip = validarString(dados[0], "IP", numeroLinha);
-                    String hostname = validarString(dados[1], "Hostname", numeroLinha);
-                    String timestampStr = validarString(dados[2], "Timestamp", numeroLinha);
-                    String nomeProcesso = validarString(dados[3], "Nome Processo", numeroLinha);
-                    String mac = validarString(dados[7], "MAC", numeroLinha);
+                    String fk_modelo = validarString(dados[0], "IP", numeroLinha);
+                    String fk_zona = validarString(dados[1], "Hostname", numeroLinha);
+                    String fk_empresa = validarString(dados[2], "Hostname", numeroLinha);
+                    String timestampStr = validarString(dados[3], "Timestamp", numeroLinha);
+                    String nomeProcesso = validarString(dados[4], "Nome Processo", numeroLinha);
+
 
                     // 2. CONVERSÃO E VALIDAÇÃO NUMÉRICA
 
                     LocalDateTime timestamp = LocalDateTime.parse(timestampStr, FORMATADOR_TIMESTAMP);
-                    Double cpu = validarRange(dados[4], "CPU", numeroLinha); // Reutiliza 0-100%
-                    Double ram = validarRange(dados[5], "RAM", numeroLinha); // Reutiliza 0-100%
+                    Double cpu = validarRange(dados[5], "CPU", numeroLinha); // Reutiliza 0-100%
+                    Double ram = validarRange(dados[6], "RAM", numeroLinha); // Reutiliza 0-100%
 
                     // Novo campo: Dados Gravados (Não há validação de range 0-100% aqui, apenas conversão para Double)
-                    Double dadosGravados = Double.valueOf(validarString(dados[6], "Dados Gravados", numeroLinha));
+                    Double dadosGravados = Double.valueOf(validarString(dados[7], "Dados Gravados", numeroLinha));
 
                     Double gpu = validarRange(dados[8], "GPU", numeroLinha); // Reutiliza 0-100%
 
@@ -57,7 +58,7 @@ public class CsvProcessoReader {
 
                     // 3. CRIAÇÃO DO OBJETO
                     CapturaProcesso novaCaptura = new CapturaProcesso(
-                            ip, hostname, timestamp, nomeProcesso, cpu, ram, dadosGravados, mac, gpu, discoUsoGb
+                            fk_modelo ,fk_zona, fk_empresa, timestamp, nomeProcesso, cpu, ram, dadosGravados, gpu, discoUsoGb
                     );
                     capturas.add(novaCaptura);
 
