@@ -1,15 +1,18 @@
 package school.sptech.cortex.monitoramento.util;
 
-
 import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CsvReader {
+public class CsvHistoricoReader {
+
     private static final String SEPARADOR = ","; // Alterar para ";" se necessário
     // Formato de data/hora no seu CSV: 2025-10-26_00-28-10. O padrão ISO pode não funcionar diretamente com o '_'.
     // A forma mais segura é ajustar o formato ou a string lida. Vamos usar um Formatador:
@@ -79,31 +82,4 @@ public class CsvReader {
         }
 
         return capturas;
-    }
-
-    private String validarString(String valor, String nomeCampo, int linha) throws IllegalArgumentException {
-        if (valor == null || valor.trim().isEmpty()) {
-            throw new IllegalArgumentException("O campo '" + nomeCampo + "' está vazio/nulo.");
-        }
-        return valor.trim();
-    }
-
-    private Double validarRange(String valorStr, String nomeCampo, int linha) throws IllegalArgumentException {
-        // Validação de nulo/vazio
-        String valorLimpo = validarString(valorStr, nomeCampo, linha);
-
-        Double valor;
-        try {
-            valor = Double.valueOf(valorLimpo);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("O campo '" + nomeCampo + "' não é um número válido: " + valorLimpo);
-        }
-
-        // Validação de Range [0.0, 100.0]
-        if (valor < 0.0 || valor > 100.0) {
-            throw new IllegalArgumentException("O campo '" + nomeCampo + "' está fora do range [0.0, 100.0]: " + valor);
-        }
-
-        return valor;
-    }
 }

@@ -1,65 +1,72 @@
 package school.sptech.cortex.monitoramento.modelo;
 
+import java.time.LocalDateTime;
+
 public class Alerta {
-        private final String tipo; // Ex: "CRÍTICO", "ATENÇÃO", "IMPORTANTE"
-        private final String nomeEmpresa;
+        private final String tipo;// Ex: "CRÍTICO", "ATENÇÃO", "IMPORTANTE"
+        private  final  String fk_modelo;
+        private  final  String fk_zona;
+        private  final  String fk_empresa;
         private final String nomeModelo;
-        private final String hostname;
-        private final String ip;
         private final String tipoMetrica; // Ex: CPU, RAM, Disco
         private final double valorAtual;
-        private final double limite;
-        private final String timestamp; // Para facilitar a formatação no Slack/Jira
+        private final LocalDateTime timestamp; // Para facilitar a formatação no Slack/Jira
 
-        public Alerta(String tipo, String nomeEmpresa, String nomeModelo, String hostname, String ip, String tipoMetrica, double valorAtual, double limite, String timestamp) {
-            this.tipo = tipo;
-            this.nomeEmpresa = nomeEmpresa;
-            this.nomeModelo = nomeModelo;
-            this.hostname = hostname;
-            this.ip = ip;
-            this.tipoMetrica = tipoMetrica;
-            this.valorAtual = valorAtual;
-            this.limite = limite;
-            this.timestamp = timestamp;
-        }
+    public Alerta(String tipo, String fk_modelo, String fk_zona, String fk_empresa, String nomeModelo, String tipoMetrica, double valorAtual, LocalDateTime timestamp) {
+        this.tipo = tipo;
+        this.fk_modelo = fk_modelo;
+        this.fk_zona = fk_zona;
+        this.fk_empresa = fk_empresa;
+        this.nomeModelo = nomeModelo;
+        this.tipoMetrica = tipoMetrica;
+        this.valorAtual = valorAtual;
+        this.timestamp = timestamp;
+    }
 
-        // --- Getters ---
+    public String getTipo() {
+        return tipo;
+    }
 
-        public String getTipo() {
-            return tipo;
-        }
+    public String getFk_modelo() {
+        return fk_modelo;
+    }
 
-    public String getNomeEmpresa() { return nomeEmpresa; }
+    public String getFk_zona() {
+        return fk_zona;
+    }
 
-    public String getNomeModelo() { return nomeModelo; }
+    public String getFk_empresa() {
+        return fk_empresa;
+    }
 
-    public String getHostname() {
-            return hostname;
-        }
+    public String getNomeModelo() {
+        return nomeModelo;
+    }
 
-        public String getIp() {
-            return ip;
-        }
+    public String getTipoMetrica() {
+        return tipoMetrica;
+    }
 
-        public String getTipoMetrica() {
-            return tipoMetrica;
-        }
+    public double getValorAtual() {
+        return valorAtual;
+    }
 
-        public double getValorAtual() {
-            return valorAtual;
-        }
 
-        public double getLimite() {
-            return limite;
-        }
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-        public String getTimestamp() {
-            return timestamp;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s - [%s] Máquina %s (%s): %s em %.2f%% (Limite: %.2f%%) em %s",
-                    nomeEmpresa, tipo, hostname, ip, tipoMetrica, valorAtual, limite, timestamp);
-        }
+    @Override
+    public String toString() {
+        return "Alerta{" +
+                "tipo='" + tipo + '\'' +
+                ", fk_modelo='" + fk_modelo + '\'' +
+                ", fk_zona='" + fk_zona + '\'' +
+                ", fk_empresa='" + fk_empresa + '\'' +
+                ", nomeModelo='" + nomeModelo + '\'' +
+                ", tipoMetrica='" + tipoMetrica + '\'' +
+                ", valorAtual=" + valorAtual +
+                ", timestamp='" + timestamp + '\'' +
+                '}';
+    }
 }

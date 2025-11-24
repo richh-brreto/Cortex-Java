@@ -1,22 +1,26 @@
 package school.sptech.cortex.monitoramento.util;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import school.sptech.cortex.monitoramento.modelo.AlertaProvavel;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
 
 public class AlertaProvavelWriter {
 
-    public static void escreverAlertasProvaveis(File nomeArquivo, List<AlertaProvavel> alertasProaveis) {
-        ObjectMapper writerJson = new ObjectMapper();
-
+    public static void escreverAlertasProvaveis(String nomeArquivo, AlertaProvavel alertasProvavel, String trusted, AmazonS3 s3Client) {
+        ObjectMapper mapper = new ObjectMapper();
 
         try{
-            writerJson.writerWithDefaultPrettyPrinter().writeValue(nomeArquivo, alertasProaveis);
-        }catch (IOException erro){
+
+            String conteudoAlertaProvavel = mapper.writeValueAsString(alertasProvavel);
+            InputStream json = new ByteArrayInputStream(conteudoAlertaProvavel.getBytes("UTF-8"));
+
+            s3Client.putObject(trusted, nomeArquivo, json, null);
+
+        }catch (Exception erro){
             System.out.println("Erro ao escrever arquivo");
             System.exit(1);
         }

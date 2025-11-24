@@ -1,111 +1,187 @@
 package school.sptech.cortex.monitoramento.app;
 
 
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.S3Event;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import school.sptech.cortex.monitoramento.dao.LimiteDAO;
-import school.sptech.cortex.monitoramento.modelo.Alerta;
-import school.sptech.cortex.monitoramento.modelo.CapturaProcesso;
-import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
-import school.sptech.cortex.monitoramento.modelo.Parametro;
+import school.sptech.cortex.monitoramento.modelo.*;
 import school.sptech.cortex.monitoramento.service.ProcessadorDeCapturasService;
 import school.sptech.cortex.monitoramento.util.*;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.s3.AmazonS3;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.List;
 
-public class Aplicacao {
-    // Caminho do arquivo CSV que contém as capturas de dados da máquina
-    private static final String ARQUIVO_CSV = ConfiguracaoAmbiente.get("CAMINHO_CSV");
-    private static final String ARQUIVO_CSV_EXPORT = ConfiguracaoAmbiente.get("CAMINHO_CSV_EXPORT");
-    private static final String ARQUIVO_CSV_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_PROCESSO");
-    private static final String ARQUIVO_CSV_EXPORT_PROCESSO = ConfiguracaoAmbiente.get("CAMINHO_CSV_EXPORT_PROCESSO");
+public class Aplicacao implements RequestHandler<S3Event, String> {
 
-    // Caminhos dos arquivos de suporte
-    private static String JSON_ALERTA_PROVAVEL_CPU = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_cpu.json";
-    private static String JSON_ALERTA_PROVAVEL_RAM = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_ram.json";
-    private static String JSON_ALERTA_PROVAVEL_DISCO = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_disco.json";
-    private static String JSON_ALERTA_PROVAVEL_GPU = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;alerta_verificacao_gpu.json";
-    private static String CSV_HISTORICO = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1;CTX_41.csv";
-    private static String JSON_ESTADO_ATUAL = "C:/Users/User/Documents/Faculdade/2ºsemestre/Grupo PI/S3/trusted/1;1;1.json";
+    private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
+    private static final String DESTINATION_BUCKET = "trusted-stocks";
 
-    public static void main(String[] args) {
+    @Override
+    public String handleRequest(S3Event s3Event, Context context) {
+
         System.out.println("=================================================");
         System.out.println("   CORTEX - INICIANDO PROCESSO DE MONITORAMENTO  ");
         System.out.println("=================================================");
 
-        if (ARQUIVO_CSV == null || ARQUIVO_CSV.isEmpty()) {
-            System.err.println("ERRO: Variável de ambiente 'CAMINHO_CSV' não configurada ou vazia.");
-            return;
-        }
 
+        String sourceBucket = s3Event.getRecords().get(0).getS3().getBucket().getName();
+        String sourceKey = s3Event.getRecords().get(0).getS3().getObject().getKey();
 
         // 1. LEITURA E CARREGAMENTO DOS DADOS DO CSV
-        System.out.printf("\n[1] Lendo capturas do arquivo: %s%n", ARQUIVO_CSV);
-        List<CapturaSistema> capturas = new CsvReader().lerECarregarCapturasSistema(ARQUIVO_CSV);
+        System.out.printf("\n[1] Lendo capturas do arquivo: %s%n");
 
-        if (capturas.isEmpty()) {
-            System.out.println("Nenhuma captura válida encontrada. Finalizando aplicação.");
-            return;
-        }
 
-        if (capturas != null) {
-            System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", ARQUIVO_CSV_EXPORT);
+        try {
+            InputStream s3InputStream = s3Client.getObject(sourceBucket, sourceKey).getObjectContent();
+
+            CsvReader reader = new CsvReader();
+            List<CapturaSistema> capturas = reader.lerECarregarCapturasSistema(s3InputStream);
+
+            // AQUI VAI COMEÇAR O TRATAMENTO DE ALERTAS
+            checarAlerta(capturas);
+
+
+            System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", sourceKey);
             CsvWriter csvWriter = new CsvWriter();
-            csvWriter.exportarCapturasSistema(capturas, ARQUIVO_CSV_EXPORT);
+            ByteArrayOutputStream csvOutputStream = csvWriter.writeCsv(capturas);
+
+            InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
+            s3Client.putObject(DESTINATION_BUCKET, sourceKey, csvInputStream, null);
+
+
+            return "Processamento concluído;";
+        }catch (Exception e) {
+            context.getLogger().log("Erro: " + e.getMessage());
+            return "Erro no processamento";
         }
 
-        System.out.printf("\n[1] Lendo capturas do arquivo: %s%n", ARQUIVO_CSV);
-        List<CapturaProcesso> capturaProcessos = new CsvProcessoReader().lerECarregarCapturasProcesso(ARQUIVO_CSV_PROCESSO);
-
-        if (capturas.isEmpty()) {
-            System.out.println("Nenhuma captura válida encontrada. Finalizando aplicação.");
-            return;
-        }
-
-        if (capturas != null) {
-            System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", ARQUIVO_CSV_EXPORT);
-            CsvProcessoWriter csvProcessoWriter = new CsvProcessoWriter();
-            csvProcessoWriter.exportarCapturasProcesso(capturaProcessos, ARQUIVO_CSV_EXPORT_PROCESSO);
-        }
-
-        // Pega os dados da primeira captura para buscar os limites no banco
-        CapturaSistema primeiraCaptura = capturas.get(0);
-        String id_modelo = primeiraCaptura.getFk_modelo();
-
-        // 2. BUSCA DE LIMITES NO BANCO DE DADOS
-        System.out.printf("[2] Buscando limites de parâmetros para a máquina %s (%s)...%n", id_modelo);
-        LimiteDAO limiteDAO = new LimiteDAO();
-        Parametro limitesDaMaquina = limiteDAO.buscarLimitesPorMaquina(id_modelo);
-
-        if (limitesDaMaquina == null) {
-            System.err.println("ERRO: Não foram encontrados limites de parâmetros para esta máquina no banco de dados.");
-            return;
-        }
-        System.out.printf("Limites carregados com sucesso. Tempo de persistência (CRÍTICO): %d minutos.%n", limitesDaMaquina.getTempoParametroMin());
-
-        // 3. PROCESSAMENTO DAS CAPTURAS E GERAÇÃO DE ALERTAS
-        System.out.println("[3] Processando capturas e aplicando a regra de negócio...");
-        ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService(limitesDaMaquina);
-        System.out.printf("Processamento concluído. Total de %d alertas gerados.%n");
-
-
-        if (!alertasGerados.isEmpty()) {
-            // 4. ENVIO DE NOTIFICAÇÕES (SLACK E JIRA)
-
-            // --- 4.1. NOTIFICAÇÃO SLACK (Envia TODOS os tipos de alerta) ---
-            System.out.println("\n[4.1] Enviando alertas para o Slack...");
-            SlackNotifier slackNotifier = new SlackNotifier();
-            slackNotifier.enviarAlertas(alertasGerados);
-
-
-            // --- 4.2. CRIAÇÃO DE TICKETS JIRA (Envia APENAS alertas CRÍTICOS) ---
-            System.out.println("\n[4.2] Verificando e criando tickets CRÍTICOS no Jira...");
-            JiraTicketCreator jiraCreator = new JiraTicketCreator();
-            jiraCreator.criarTicketsCriticos(alertasGerados);
-        } else {
-            System.out.println("\n[4] Nenhuma notificação necessária. A máquina está dentro dos limites.");
-        }
-
-        System.out.println("\n=================================================");
-        System.out.println("   CORTEX - PROCESSO DE MONITORAMENTO FINALIZADO ");
-        System.out.println("=================================================");
     }
+
+
+    public void checarAlerta(List<CapturaSistema> capturas){
+        ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService();
+
+        LimiteDAO limiteComando = new LimiteDAO();
+        Parametro limite = limiteComando.buscarLimitesPorMaquina(capturas.get(0).getFk_modelo());
+
+        String fk_modelo = capturas.get(0).getFk_modelo();
+        String fk_zona = capturas.get(0).getFk_zona();
+        String fk_empresa = capturas.get(0).getFk_empresa();
+
+        EstadoAtualChecar estado = new EstadoAtualChecar();
+        String jsonEstadoAtual = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + "estadoAtual.json";
+
+        Alerta cpu = null;
+        Alerta gpu = null;
+        Alerta ram = null;
+        Alerta disco = null;
+
+        for(CapturaSistema c : capturas){
+
+            EstadoAtual estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
+            // CPU
+            if(estadoAlerta != null){
+                if(estadoAlerta.getCpu()){
+                    if(c.getCpu() > limite.getLimiteCpu()){
+                        estadoAlerta.setTimestamp(c.getTimestamp());
+                    }else {
+                        estadoAlerta.setCpu(false);
+                      cpu = processador.checarEGerarAlerta("Cpu", c.getCpu(), limite.getLimiteCpu(),
+                                limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                    }
+                }else {
+                  cpu =  processador.checarEGerarAlerta("Cpu", c.getCpu(), limite.getLimiteCpu(),
+                            limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                }
+
+                if(cpu != null){
+                    if(estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getRam() || estadoAlerta.getGpu()){
+                        estadoAlerta.setCpu(true);
+                        estadoAlerta.setTimestamp(c.getTimestamp());
+                        // CONCATENAR
+                    }else{
+                        if(estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
+                            // Configura novo ticket
+                            // Criar novo Ticket
+                            // retorna o id do ticket do jira
+                            // Cria novo csv de histórico
+                            // atualiza json com novo estado
+                        }else {
+                            // Não configura
+                            // CONCATENAR
+                        }
+                    }
+                }
+
+                // GPU
+                if(estadoAlerta.getGpu()){
+                    if(c.getGpu() > limite.getLimiteGpu()){
+                        estadoAlerta.setTimestamp(c.getTimestamp());
+                    }else {
+                        estadoAlerta.setGpu(false);
+                      gpu =  processador.checarEGerarAlerta("Gpu", c.getGpu(), limite.getLimiteGpu(),
+                                limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                    }
+                }else {
+                    gpu = processador.checarEGerarAlerta("Gpu", c.getGpu(), limite.getLimiteGpu(),
+                            limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                }
+                if(estadoAlerta.getDisco()){
+                    if(c.getDiscoUso() > limite.getLimiteDiscoUso()){
+                        estadoAlerta.setTimestamp(c.getTimestamp());
+                    }else {
+                        estadoAlerta.setDisco(false);
+                        disco = processador.checarEGerarAlerta("Disco", c.getDiscoUso(), limite.getLimiteDiscoUso(),
+                                limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                    }
+                }else{
+                  disco =  processador.checarEGerarAlerta("Disco", c.getDiscoUso(), limite.getLimiteDiscoUso(),
+                            limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                }
+                if(estadoAlerta.getRam()){
+                    if(c.getRam() > limite.getLimiteRam()){
+                        estadoAlerta.setTimestamp(c.getTimestamp());
+
+                    }else {
+                        estadoAlerta.setRam(false);
+                       ram = processador.checarEGerarAlerta("Ram", c.getRam(), limite.getLimiteRam(),
+                                limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                    }
+                }else {
+                    ram = processador.checarEGerarAlerta("Ram", c.getRam(), limite.getLimiteRam(),
+                            limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                }
+            }
+
+            // CSV HISORICO
+
+            if(estadoAlerta.getRam() || estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getGpu()){
+                // Atualizar csv de histórico atual usando o id, booleans do JSON E valores e timestamp da captura
+            }else{
+                if(CSV.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
+                    return;
+                }else{
+                    // Atualizar csv de histórico atual usando o id, booleans do JSON E valores e timestamp da captura
+                }
+            }
+
+
+        }
+
+    }
+
 }
