@@ -1,15 +1,15 @@
 package school.sptech.cortex.monitoramento.util;
 
 import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
+import school.sptech.cortex.monitoramento.modelo.HistoricoAlerta;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 public class CsvHistoricoReader {
 
@@ -19,67 +19,48 @@ public class CsvHistoricoReader {
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 
-    public List<CapturaSistema> lerECarregarCapturasSistema(InputStream arquivo) {
-        List<CapturaSistema> capturas = new ArrayList<>();
+    public List<HistoricoAlerta> leExibeArquivoCsv(InputStream nomeArq) {
+        List<HistoricoAlerta> historico = new ArrayList<>();
 
-        int numeroLinha = 0;
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(arquivo))) {
 
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(nomeArq))){
             br.readLine(); // Pula o cabeçalho
-            numeroLinha++;
 
 
             String linha;
             while ((linha = br.readLine()) != null) {
-                numeroLinha++;
+
                 String[] dados = linha.split(SEPARADOR);
 
-                // A LINHA SÓ É IGNORADA SE TIVER MENOS DE 9 COLUNAS
-                if (dados.length < 9) {
-                    System.err.println("Linha " + numeroLinha + ": Ignorada. Colunas insuficientes. Esperado: 9, Encontrado: " + dados.length);
-                    continue;
-                }
+                Boolean cpu = Boolean.parseBoolean(dados[0]);
+                Boolean ram = Boolean.parseBoolean(dados[1]);
+                Boolean gpu = Boolean.parseBoolean(dados[2]);
+                Boolean disco = Boolean.parseBoolean(dados[3]);
+                Double valorCpu = Double.parseDouble(dados[4]);
+                Double valorGpu = Double.parseDouble(dados[5]);
+                Double valorDisco = Double.parseDouble(dados[6]);
+                Double valorRam = Double.parseDouble(dados[7]);
 
-                try {
-                    // 1. EXTRAÇÃO E VALIDAÇÃO (NULO/VAZIO)
-                    String fk_modelo = validarString(dados[0], "fk_modelo", numeroLinha);
-                    String fk_zona = validarString(dados[1], "fk_zona", numeroLinha);
-                    String fk_empresa = validarString(dados[2], "fk_empresa", numeroLinha);
-                    String timestampStr = validarString(dados[3], "Timestamp", numeroLinha); // String bruta do CSV
+                LocalDateTime timestamp = LocalDateTime.parse(dados[8], FORMATADOR_TIMESTAMP);
 
-                    // 2. CONVERSÃO E VALIDAÇÃO NUMÉRICA
+                HistoricoAlerta novoHistorico = new HistoricoAlerta(cpu,ram,gpu,disco,valorCpu,valorGpu,valorDisco,valorRam,timestamp);
 
-                    // Conversão de Timestamp (usa o formatador "yyyy-MM-dd_HH-mm-ss")
-                    LocalDateTime timestamp = LocalDateTime.parse(timestampStr, FORMATADOR_TIMESTAMP);
+                historico.add(novoHistorico);
 
-                    // Conversão e Validação de Range [0.0, 100.0]
-                    Double cpu = validarRange(dados[4], "CPU", numeroLinha);
-                    Double ram = validarRange(dados[5], "RAM", numeroLinha);
-                    Double armazenamento = validarRange(dados[6], "Armazenamento", numeroLinha);
-                    Double discoUso = validarRange(dados[7], "Disco Uso", numeroLinha);
-                    Double gpu = validarRange(dados[8], "GPU", numeroLinha);
 
-                    // 3. CRIAÇÃO DO OBJETO
-                    CapturaSistema novaCaptura = new CapturaSistema(
-                            fk_modelo, fk_zona, fk_empresa, timestamp, cpu, ram, armazenamento, discoUso, gpu
-                    );
-                    capturas.add(novaCaptura);
-
-                } catch (java.time.format.DateTimeParseException e) {
-                    // **NOVO CATCH PARA PEGAR ERROS DE FORMATO DE DATA/HORA**
-                    System.err.println("Linha " + numeroLinha + ": Ignorada. Motivo: Formato de Timestamp inválido. Detalhe: " + e.getMessage());
-                } catch (IllegalArgumentException e) {
-                    // Captura: Nulo/Vazio, Fora do Range, Não-Numérico
-                    System.err.println("Linha " + numeroLinha + ": Ignorada. Motivo: " + e.getMessage());
-                } catch (Exception e) {
-                    // Captura outros erros inesperados (ex: ArrayIndexOutOfBounds (embora o 'if' deva evitar))
-                    System.err.println("Linha " + numeroLinha + ": Ignorada. Erro inesperado: " + e.getMessage());
-                }
             }
-        } catch (IOException e) {
-            System.err.println("Erro ao ler o arquivo CSV: " + e.getMessage());
+        }
+        catch (NoSuchElementException erro) {
+            System.out.println("Arquivo com problemas!");
+            erro.printStackTrace();
+        }
+        catch (IllegalStateException | IOException erro) {
+            System.out.println("Erro na leitura do arquivo!");
+            erro.printStackTrace();
         }
 
-        return capturas;
+
+        return historico;
+    }
 }

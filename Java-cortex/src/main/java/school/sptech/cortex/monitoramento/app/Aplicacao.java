@@ -76,15 +76,31 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
 
         EstadoAtualChecar estado = new EstadoAtualChecar();
         String jsonEstadoAtual = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + "estadoAtual.json";
+        EstadoAtual estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
+
+        CsvHistoricoReader leitor = new CsvHistoricoReader();
+        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + estadoAlerta.getIdJira() + "historico.csv";  // colocar o nome do csv
+
+        InputStream s3InputStream = s3Client.getObject(DESTINATION_BUCKET, nome_arquivo_historico).getObjectContent();
+
+        if(s3InputStream != null){
+            leitor.leExibeArquivoCsv(s3InputStream);
+        }else {
+            
+        }
+
+        HistoricoAlerta historico = new HistoricoAlerta();
 
         Alerta cpu = null;
         Alerta gpu = null;
         Alerta ram = null;
         Alerta disco = null;
 
+
+
         for(CapturaSistema c : capturas){
 
-            EstadoAtual estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
+             estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
             // CPU
             if(estadoAlerta != null){
                 if(estadoAlerta.getCpu()){
@@ -103,22 +119,27 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                 }
 
                 if(cpu != null){
-                    if(estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getRam() || estadoAlerta.getGpu()){
-                        estadoAlerta.setCpu(true);
-                        estadoAlerta.setTimestamp(c.getTimestamp());
-                        // CONCATENAR
-                    }else{
-                        if(estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
-                            // Configura novo ticket
-                            // Criar novo Ticket
-                            // retorna o id do ticket do jira
-                            // Cria novo csv de histórico
-                            // atualiza json com novo estado
-                        }else {
-                            // Não configura
+                    if(cpu.getTipo().equals("Atencao")){
+                        // Mandar pro Slack
+                    }else {
+                        if(estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getRam() || estadoAlerta.getGpu()){
+                            estadoAlerta.setCpu(true);
+                            estadoAlerta.setTimestamp(c.getTimestamp());
                             // CONCATENAR
+                        }else{
+                            if(estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
+                                // Configura novo ticket
+                                // Criar novo Ticket
+                                // retorna o id do ticket do jira
+                                // Cria novo csv de histórico
+                                // atualiza json com novo estado
+                            }else {
+                                // Não configura
+                                // CONCATENAR
+                            }
                         }
                     }
+
                 }
 
                 // GPU
@@ -166,6 +187,8 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
                 }
             }
+
+            // PRECISO ATUALIZAR O JSON
 
             // CSV HISORICO
 
