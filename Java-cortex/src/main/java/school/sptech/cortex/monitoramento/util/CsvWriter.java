@@ -35,8 +35,9 @@ public class CsvWriter {
             );
         }
 
-        csvPrinter.flush();
-        writer.close();
+            csvPrinter.flush();
+            csvPrinter.close();
+
 
         return outputStream;
     }

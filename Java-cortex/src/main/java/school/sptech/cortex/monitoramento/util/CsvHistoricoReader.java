@@ -1,6 +1,6 @@
 package school.sptech.cortex.monitoramento.util;
 
-import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
+import com.amazonaws.services.s3.AmazonS3;
 import school.sptech.cortex.monitoramento.modelo.HistoricoAlerta;
 
 import java.io.*;
@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Scanner;
 
 public class CsvHistoricoReader {
 
@@ -19,48 +18,66 @@ public class CsvHistoricoReader {
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 
-    public List<HistoricoAlerta> leExibeArquivoCsv(InputStream nomeArq) {
+    public List<HistoricoAlerta> leExibeArquivoCsv(String nomeArquivo,
+                                                   AmazonS3 s3Client,
+                                                   String trusted
+                                                  ) {
         List<HistoricoAlerta> historico = new ArrayList<>();
 
+        try {
+              // colocar o nome do csv
+
+            InputStream s3InputStream = s3Client.getObject(trusted, nomeArquivo).getObjectContent();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
+
+                br.readLine(); // Pula o cabeçalho
 
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(nomeArq))){
-            br.readLine(); // Pula o cabeçalho
+                String linha;
+                while ((linha = br.readLine()) != null) {
+
+                    String[] dados = linha.split(SEPARADOR);
+
+                    Boolean cpu = Boolean.parseBoolean(dados[0]);
+                    Boolean ram = Boolean.parseBoolean(dados[1]);
+                    Boolean gpu = Boolean.parseBoolean(dados[2]);
+                    Boolean disco = Boolean.parseBoolean(dados[3]);
+                    Double valorCpu = Double.parseDouble(dados[4]);
+                    Double valorGpu = Double.parseDouble(dados[5]);
+                    Double valorDisco = Double.parseDouble(dados[6]);
+                    Double valorRam = Double.parseDouble(dados[7]);
+
+                    LocalDateTime timestamp = LocalDateTime.parse(dados[8], FORMATADOR_TIMESTAMP);
+
+                    HistoricoAlerta novoHistorico = new HistoricoAlerta(cpu, ram, gpu, disco, valorCpu, valorGpu, valorDisco, valorRam, timestamp);
+
+                    historico.add(novoHistorico);
 
 
-            String linha;
-            while ((linha = br.readLine()) != null) {
+                }
+                return historico;
+            } catch (NoSuchElementException erro) {
+                System.out.println("Arquivo com problemas!");
+                erro.printStackTrace();
 
-                String[] dados = linha.split(SEPARADOR);
+            } catch (IllegalStateException | IOException erro) {
+                System.out.println("Erro na leitura do arquivo!");
+                erro.printStackTrace();
+            }
 
-                Boolean cpu = Boolean.parseBoolean(dados[0]);
-                Boolean ram = Boolean.parseBoolean(dados[1]);
-                Boolean gpu = Boolean.parseBoolean(dados[2]);
-                Boolean disco = Boolean.parseBoolean(dados[3]);
-                Double valorCpu = Double.parseDouble(dados[4]);
-                Double valorGpu = Double.parseDouble(dados[5]);
-                Double valorDisco = Double.parseDouble(dados[6]);
-                Double valorRam = Double.parseDouble(dados[7]);
+        }catch (Exception e3){
+            try{
 
-                LocalDateTime timestamp = LocalDateTime.parse(dados[8], FORMATADOR_TIMESTAMP);
+                CsvHistoricoNovoWriter escritor = new CsvHistoricoNovoWriter();
+                ByteArrayOutputStream novoCsv = escritor.writeCsv();
+                InputStream csvInputStream = new ByteArrayInputStream(novoCsv.toByteArray());
+                s3Client.putObject(trusted, nomeArquivo, csvInputStream, null);
 
-                HistoricoAlerta novoHistorico = new HistoricoAlerta(cpu,ram,gpu,disco,valorCpu,valorGpu,valorDisco,valorRam,timestamp);
-
-                historico.add(novoHistorico);
-
-
+            }catch (Exception erro){
+                System.out.println("Erro ao escrever arquivo");
+                System.exit(1);
             }
         }
-        catch (NoSuchElementException erro) {
-            System.out.println("Arquivo com problemas!");
-            erro.printStackTrace();
-        }
-        catch (IllegalStateException | IOException erro) {
-            System.out.println("Erro na leitura do arquivo!");
-            erro.printStackTrace();
-        }
-
-
-        return historico;
+        return null;
     }
 }

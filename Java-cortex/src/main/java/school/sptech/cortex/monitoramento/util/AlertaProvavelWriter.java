@@ -6,11 +6,12 @@ import school.sptech.cortex.monitoramento.modelo.AlertaProvavel;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.List;
 
 
 public class AlertaProvavelWriter {
 
-    public static void escreverAlertasProvaveis(String nomeArquivo, AlertaProvavel alertasProvavel, String trusted, AmazonS3 s3Client) {
+    public static void escreverAlertasProvaveis(String nomeArquivo, List<AlertaProvavel> alertasProvavel, String trusted, AmazonS3 s3Client) {
         ObjectMapper mapper = new ObjectMapper();
 
         try{

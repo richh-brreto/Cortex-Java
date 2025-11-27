@@ -70,26 +70,25 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
         LimiteDAO limiteComando = new LimiteDAO();
         Parametro limite = limiteComando.buscarLimitesPorMaquina(capturas.get(0).getFk_modelo());
 
+
+
         String fk_modelo = capturas.get(0).getFk_modelo();
         String fk_zona = capturas.get(0).getFk_zona();
         String fk_empresa = capturas.get(0).getFk_empresa();
+
 
         EstadoAtualChecar estado = new EstadoAtualChecar();
         String jsonEstadoAtual = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + "estadoAtual.json";
         EstadoAtual estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
 
         CsvHistoricoReader leitor = new CsvHistoricoReader();
-        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + estadoAlerta.getIdJira() + "historico.csv";  // colocar o nome do csv
 
-        InputStream s3InputStream = s3Client.getObject(DESTINATION_BUCKET, nome_arquivo_historico).getObjectContent();
+        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + estadoAlerta.getIdJira() + "historico.csv";
+        // Lembrar que se não existir vai retornar como null
+        List<HistoricoAlerta> historico = leitor.leExibeArquivoCsv(nome_arquivo_historico,s3Client,DESTINATION_BUCKET);
 
-        if(s3InputStream != null){
-            leitor.leExibeArquivoCsv(s3InputStream);
-        }else {
-            
-        }
-
-        HistoricoAlerta historico = new HistoricoAlerta();
+        SlackNotifier slack = new SlackNotifier();
+        JiraTicketCreator jira = new JiraTicketCreator();
 
         Alerta cpu = null;
         Alerta gpu = null;
@@ -100,7 +99,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
 
         for(CapturaSistema c : capturas){
 
-             estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
+
             // CPU
             if(estadoAlerta != null){
                 if(estadoAlerta.getCpu()){
@@ -110,18 +109,18 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                         estadoAlerta.setCpu(false);
                       cpu = processador.checarEGerarAlerta("Cpu", c.getCpu(), limite.getLimiteCpu(),
                                 limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                     }
                 }else {
                   cpu =  processador.checarEGerarAlerta("Cpu", c.getCpu(), limite.getLimiteCpu(),
                             limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                 }
 
                 if(cpu != null){
-                    if(cpu.getTipo().equals("Atencao")){
-                        // Mandar pro Slack
-                    }else {
+
+                    slack.enviarAlertas(cpu);
+                        if(cpu.getTipo().equalsIgnoreCase("Critico")){
                         if(estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getRam() || estadoAlerta.getGpu()){
                             estadoAlerta.setCpu(true);
                             estadoAlerta.setTimestamp(c.getTimestamp());
@@ -130,15 +129,19 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             if(estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
                                 // Configura novo ticket
                                 // Criar novo Ticket
+                                jira.criarTicketsCriticos(cpu);
+
                                 // retorna o id do ticket do jira
                                 // Cria novo csv de histórico
-                                // atualiza json com novo estado
+                                // atualiza json com novo estado - atualizar o objeto
+
                             }else {
                                 // Não configura
                                 // CONCATENAR
                             }
+
                         }
-                    }
+                        }
 
                 }
 
@@ -150,12 +153,12 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                         estadoAlerta.setGpu(false);
                       gpu =  processador.checarEGerarAlerta("Gpu", c.getGpu(), limite.getLimiteGpu(),
                                 limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                     }
                 }else {
                     gpu = processador.checarEGerarAlerta("Gpu", c.getGpu(), limite.getLimiteGpu(),
                             limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                 }
                 if(estadoAlerta.getDisco()){
                     if(c.getDiscoUso() > limite.getLimiteDiscoUso()){
@@ -164,12 +167,12 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                         estadoAlerta.setDisco(false);
                         disco = processador.checarEGerarAlerta("Disco", c.getDiscoUso(), limite.getLimiteDiscoUso(),
                                 limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                     }
                 }else{
                   disco =  processador.checarEGerarAlerta("Disco", c.getDiscoUso(), limite.getLimiteDiscoUso(),
                             limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                 }
                 if(estadoAlerta.getRam()){
                     if(c.getRam() > limite.getLimiteRam()){
@@ -179,12 +182,12 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                         estadoAlerta.setRam(false);
                        ram = processador.checarEGerarAlerta("Ram", c.getRam(), limite.getLimiteRam(),
                                 limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                                c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                     }
                 }else {
                     ram = processador.checarEGerarAlerta("Ram", c.getRam(), limite.getLimiteRam(),
                             limite.getTempoParametroMin(), c.getTimestamp(), s3Client, DESTINATION_BUCKET,
-                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getNome());
+                            c.getFk_modelo(), c.getFk_zona(), c.getFk_empresa(), limite.getHostname(), limite.getNome());
                 }
             }
 
@@ -195,15 +198,17 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
             if(estadoAlerta.getRam() || estadoAlerta.getCpu() || estadoAlerta.getDisco() || estadoAlerta.getGpu()){
                 // Atualizar csv de histórico atual usando o id, booleans do JSON E valores e timestamp da captura
             }else{
-                if(CSV.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
-                    return;
-                }else{
+            //    if(CSV.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())){
+               //     return;
+              //  }else{
                     // Atualizar csv de histórico atual usando o id, booleans do JSON E valores e timestamp da captura
-                }
+              //  }
             }
 
 
         }
+
+        // ATUALIZAR MEU JSON E MANDAR PRO BUCKET
 
     }
 

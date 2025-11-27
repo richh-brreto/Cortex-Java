@@ -8,20 +8,19 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
 public class SlackNotifier {
     private static final String SLACK_WEBHOOK_URL = ConfiguracaoAmbiente.get("SLACK_WEBHOOK_URL");
-
+    private static final java.time.format.DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     // O cliente HTTP é criado uma vez e reutilizado
     private final HttpClient httpClient = HttpClient.newBuilder().build();
 
-    /**
-     * Envia a lista de alertas (CRÍTICO, ATENÇÃO, PREDITIVO) para o canal do Slack via Webhook.
-     */
-    public void enviarAlertas(List<Alerta> alertas) {
-        if (alertas == null || alertas.isEmpty()) {
+
+    public void enviarAlertas(Alerta alertas) {
+        if (alertas == null) {
             return;
         }
 
@@ -43,41 +42,31 @@ public class SlackNotifier {
     /**
      * Converte a lista de Alertas em uma String formatada em Slack Markdown
      */
-    private String formatarMensagem(List<Alerta> alertas) {
+    private String formatarMensagem(Alerta alertas) {
         // Usamos o Hostname da primeira captura para identificar a máquina
-        Alerta primeiroAlerta = alertas.get(0);
-
-        // Constrói o cabeçalho da mensagem
-        String cabecalho = String.format(
-                ":robot_face: *Monitoramento Cortex: Novo Lote de Alertas para %s*\n" +
-                        ":computer: Máquina: %s `%s:%s`\n\n" +
-                        "*Detalhes dos Alertas:*\n",
-                primeiroAlerta.getNomeEmpresa(),
-                primeiroAlerta.getNomeModelo(),
-                primeiroAlerta.getIp(),
-                primeiroAlerta.getHostname()
-        );
-
-        // Usa StringBuilder para otimizar a concatenação dentro do loop
-        StringBuilder detalhes = new StringBuilder();
-
-        // Itera sobre a lista de alertas usando um loop for simples (sem Stream/Map)
-        for (Alerta alerta : alertas) {
-            String linhaAlerta = String.format(
-                    "%s *%s* - `%s`: %.2f%% (Limite: %.1f%%) - %s",
-                    getEmojiByTipo(alerta.getTipo()),
-                    alerta.getTipo(),
-                    alerta.getTipoMetrica(),
-                    alerta.getValorAtual(),
-                    alerta.getLimite(),
-                    alerta.getTimestamp()
+        String notificacao = null;
+        if (alertas.getTipo().equals("Atencao")){
+             notificacao = String.format(
+                    "ATENÇÃO! Modelo %s que está na Máquina %s está com a %s em %.2f%% em %s",
+                    alertas.getNomeModelo().toUpperCase(),
+                    alertas.getHostname().toUpperCase(),
+                    alertas.getTipoMetrica().toUpperCase(),
+                    alertas.getValorAtual(),
+                    alertas.getTimestamp().format(FORMATADOR_TIMESTAMP)
             );
-
-            detalhes.append(linhaAlerta).append("\n");
+        }else {
+           notificacao = String.format(
+                    "CRÍTICO! Modelo %s que está na Máquina %s está com a %s em %.2f%% em %s",
+                    alertas.getNomeModelo().toUpperCase(),
+                    alertas.getHostname().toUpperCase(),
+                    alertas.getTipoMetrica().toUpperCase(),
+                    alertas.getValorAtual(),
+                    alertas.getTimestamp().format(FORMATADOR_TIMESTAMP)
+            );
         }
+        // Constrói o cabeçalho da mensagem
 
-        // Retorna o cabeçalho concatenado com a lista de detalhes
-        return cabecalho + detalhes.toString();
+        return notificacao;
     }
 
     /**
@@ -90,21 +79,6 @@ public class SlackNotifier {
         return String.format("{\"text\": \"%s\"}", textoEscapado);
     }
 
-    /**
-     * Retorna o emoji correspondente ao tipo de alerta.
-     */
-    private String getEmojiByTipo(String tipo) {
-        return switch (tipo.toUpperCase()) {
-            case "CRÍTICO" -> ":fire:";
-            case "IMPORTANTE" -> ":warning:";
-            case "ATENÇÃO" -> ":large_orange_diamond:";
-            default -> ":information_source:";
-        };
-    }
-
-    /**
-     * Envia a requisição HTTP POST para a URL do Webhook do Slack.
-     */
     private void enviarRequisicao(String jsonPayload) {
         try {
             if (SLACK_WEBHOOK_URL == null || SLACK_WEBHOOK_URL.contains("SUA_URL_DE_WEBHOOK_AQUI")) {
@@ -129,7 +103,7 @@ public class SlackNotifier {
                 System.err.println("   Corpo de Resposta: " + response.body());
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println("❌ ERRO GERAL na requisição HTTP para o Slack: " + e.getMessage());
+            System.err.println("ERRO GERAL na requisição HTTP para o Slack: " + e.getMessage());
         }
     }
 }

@@ -10,6 +10,7 @@ import school.sptech.cortex.monitoramento.util.MapperAlertaProvavel;
 
 import java.io.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProcessadorDeCapturasService {
@@ -26,6 +27,7 @@ public class ProcessadorDeCapturasService {
             String fk_modelo,
             String fk_zona,
             String fk_empresa,
+            String hostname,
             String nomeModelo
     ) {
         // Validação básica
@@ -43,13 +45,13 @@ public class ProcessadorDeCapturasService {
         if (valorAtual >= limiteCritico) {
             // LOGICA DE CRITICO CHECANDO O JSON
             // LEMBRAR DE SETAR O TIPO DE ALERTA
-            return checarTempo(valorAtual,timestamp,tempoBaseMinutos,"Critico", s3Client,trusted, fk_modelo,componente,fk_empresa,fk_zona,nomeModelo);
+            return checarTempo(valorAtual,timestamp,tempoBaseMinutos,"Critico", s3Client,trusted, fk_modelo,componente,fk_empresa,fk_zona,nomeModelo, hostname);
             // 3. ANÁLISE DE ATENÇÃO (Usa Limite de Atenção e Tempo de Atenção)
         }else if (valorAtual >= limiteAtencao) {
 
             // LOGICA DE ATENCAO CHECANDO O JSON
             // LEMBRAR DE SETAR O TIPO DE ALERTA
-            return checarTempo(valorAtual,timestamp,tempoAtencaoMinutos,"Atencao", s3Client,trusted, fk_modelo,componente,fk_empresa,fk_zona,nomeModelo);
+            return checarTempo(valorAtual,timestamp,tempoAtencaoMinutos,"Atencao", s3Client,trusted, fk_modelo,componente,fk_empresa,fk_zona,nomeModelo, hostname);
         }
 
         // 5. Geração do Alerta
@@ -77,17 +79,19 @@ public class ProcessadorDeCapturasService {
                               String componente,
                               String fk_empresa,
                               String fk_zona,
-                              String nomeModelo) {
+                              String nomeModelo,
+                              String hostname) {
 
-        String jsonEstadoAtual = fk_modelo + ";" + componente + ";" + tipo + ";Possibilidade.json";
+        String jsonPossibilidade = fk_modelo + ";" + componente + ";" + tipo + ";Possibilidade.json";
 
+        List<AlertaProvavel> listaAlertasProvaveis = new ArrayList<>();
 
         try {
-            InputStream jsonEstado = s3Client.getObject(trusted, jsonEstadoAtual).getObjectContent();
+            InputStream arquivoPossibilidade = s3Client.getObject(trusted, jsonPossibilidade).getObjectContent();
 
-            MapperAlertaProvavel mapperEstadoAtual = new MapperAlertaProvavel();
+            MapperAlertaProvavel mapperAlertaProvavel= new MapperAlertaProvavel();
 
-            List<AlertaProvavel> listaAlertasProvaveis = mapperEstadoAtual.map(jsonEstado);
+            listaAlertasProvaveis = mapperAlertaProvavel.map(arquivoPossibilidade);
 
             Integer tamanho = listaAlertasProvaveis.size();
             LocalDateTime ultimoTimestamp = listaAlertasProvaveis.get(tamanho - 1).getTimestamp();
@@ -95,23 +99,23 @@ public class ProcessadorDeCapturasService {
             if (ultimoTimestamp.plusSeconds(20).isAfter(timestamp)) {
 
                 listaAlertasProvaveis.clear();
-
-                AlertaProvavelWriter.escreverAlertasProvaveis(jsonEstadoAtual, criarAlertaProvavel(valorAtual, timestamp), trusted, s3Client);
+                listaAlertasProvaveis.add(criarAlertaProvavel(valorAtual, timestamp));
+                AlertaProvavelWriter.escreverAlertasProvaveis(jsonPossibilidade, listaAlertasProvaveis, trusted, s3Client);
 
                 return null;
 
             } else {
                 //faz parte, adicionar nova captura, verifica tempo total - verifica se ultrapassa limite
-                for (AlertaProvavel a : listaAlertasProvaveis) {
-                    AlertaProvavelWriter.escreverAlertasProvaveis(jsonEstadoAtual, a, trusted, s3Client);
-                }
+
+                    AlertaProvavelWriter.escreverAlertasProvaveis(jsonPossibilidade, listaAlertasProvaveis, trusted, s3Client);
+
 
                 ultimoTimestamp = listaAlertasProvaveis.get(tamanho - 1).getTimestamp();
                 LocalDateTime primeiro = listaAlertasProvaveis.get(0).getTimestamp();
 
                 if (primeiro.plusMinutes(tempoBaseMinutos).isAfter(ultimoTimestamp)) {
                     // ultrapassa
-                    Alerta novoalerta = new Alerta(tipo, fk_modelo, fk_zona, fk_empresa, nomeModelo, componente, valorAtual, timestamp);
+                    Alerta novoalerta = new Alerta(tipo, fk_modelo, fk_zona, fk_empresa, nomeModelo, hostname, componente ,valorAtual, timestamp);
                     return novoalerta;
                 } else {
                     // n ultrapassa
@@ -121,7 +125,8 @@ public class ProcessadorDeCapturasService {
         } catch (Exception e) {
             System.out.println("Arquivo não encontrado, criando...");
             try {
-                AlertaProvavelWriter.escreverAlertasProvaveis(jsonEstadoAtual, criarAlertaProvavel(valorAtual, timestamp), trusted, s3Client);
+                listaAlertasProvaveis.add(criarAlertaProvavel(valorAtual, timestamp));
+                AlertaProvavelWriter.escreverAlertasProvaveis(jsonPossibilidade,listaAlertasProvaveis , trusted, s3Client);
 
                 return null;
 

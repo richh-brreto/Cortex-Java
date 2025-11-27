@@ -12,12 +12,14 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 
 public class JiraTicketCreator {
+    private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     // VARIÁVEIS DE CONFIGURAÇÃO
     private final String jiraUrl;
     private final String jiraUsername;
@@ -56,46 +58,37 @@ public class JiraTicketCreator {
     }
 
 
-    /**
-     * Filtra a lista e cria um ticket no Jira para cada Alerta CRÍTICO.
-     */
-    public void criarTicketsCriticos(List<Alerta> alertas) {
+    public void criarTicketsCriticos(Alerta alertas) {
 
         System.out.println("--- Iniciando verificação de alertas CRÍTICOS para o Jira ---");
 
-        for (Alerta alerta : alertas) {
             // 1. FILTRAGEM
-            if (!alerta.getTipo().equalsIgnoreCase("CRÍTICO")) {
-                continue; // Ignora alertas que não são CRÍTICOS
-            }
 
             try {
                 // 2. Formata a mensagem de negócio para o Jira
-                String summary = String.format("%s! ALERTA CRÍTICO: %s em %.2f%% na máquina %s %s:%s",
-                        alerta.getNomeEmpresa(), alerta.getTipoMetrica(), alerta.getValorAtual(), alerta.getNomeModelo(), alerta.getIp(), alerta.getHostname());
+                String summary = String.format("ALERTA CRÍTICO: Modelo %s Máquina %s",
+                        alertas.getNomeModelo(), alertas.getHostname());
 
                 String description = String.format(
                         "Alerta de Utilização Crítica - Cortex\n\n" +
-                                "A máquina: %s %s:%s ultrapassou o limite crítico de %s.\n" +
-                                "Detalhes do Alerta:\n" +
-                                "- Uso Atual: %.2f%%\n" +
-                                "- Limite Configurado: %.1f%%\n" +
-                                "- Timestamp: %s\n\n" +
-                                "Prioridade: %s. Ação Requerida Imediata.",
-                        alerta.getNomeModelo(), alerta.getIp(), alerta.getHostname(), alerta.getTipoMetrica(),
-                        alerta.getValorAtual(), alerta.getLimite(), alerta.getTimestamp(), jiraPriorityName
+                                "O modelo: %s - na máquina: %s ultrapassou o limite crítico de:\n" +
+                                "- %s  - com o uso de: %.2f%% - em: %s",
+                        alertas.getNomeModelo(), alertas.getHostname(), alertas.getTipoMetrica(), alertas.getValorAtual(),
+                        alertas.getTimestamp().format(FORMATADOR_TIMESTAMP)
                 );
 
+                String categoria = alertas.getTipoMetrica().toLowerCase();
+
                 // 3. Monta o JSON de Payload
-                String jsonPayload = buildIssueJson(summary, description);
+                String jsonPayload = buildIssueJson(summary, description, categoria);
 
                 // 4. Envia a requisição
                 enviarRequisicao(jsonPayload);
 
             } catch (Exception e) {
-                System.err.println("❌ ERRO ao processar Alerta para o Jira (" + alerta.getNomeModelo() + " " + alerta.getIp()+ ":" +alerta.getHostname() + "): " + e.getMessage());
+                System.err.println("ERRO ao processar Alerta para o Jira ");
             }
-        }
+
 
         System.out.println("--- Verificação de alertas CRÍTICOS concluída ---");
     }
@@ -105,7 +98,7 @@ public class JiraTicketCreator {
     /**
      * Monta o JSON (Payload) para o Issue no formato ADF, incluindo campos obrigatórios.
      */
-    private String buildIssueJson(String summary, String descriptionDetails) {
+    private String buildIssueJson(String summary, String descriptionDetails, String categoria) {
         String safeSummary = summary.replace("\"", "\\\"");
         String adfDescription = createAdfDescription(descriptionDetails);
 
@@ -118,6 +111,7 @@ public class JiraTicketCreator {
                         "\"issuetype\": {\"name\": \"%s\"}," +
                         "\"priority\": {\"name\": \"%s\"}," +
                         "\"assignee\": {\"name\": \"%s\"}" +
+                        "\"labels\": {\"name\": \"%s\"}" +
                         "}" +
                         "}";
 
@@ -128,7 +122,8 @@ public class JiraTicketCreator {
                 adfDescription, // adfDescription é um JSON e é inserido sem aspas adicionais
                 jiraIssueTypeName,
                 jiraPriorityName,
-                jiraAssigneeEmail
+                jiraAssigneeEmail,
+                categoria
         );
     }
 
@@ -197,16 +192,16 @@ public class JiraTicketCreator {
             String responseBody = response.body();
 
             if (statusCode >= 200 && statusCode < 300) {
-                System.out.println("✅ SUCESSO: Ticket do Jira criado. Status HTTP: " + statusCode);
+                System.out.println("SUCESSO: Ticket do Jira criado. Status HTTP: " + statusCode);
             } else {
-                System.err.println("❌ FALHA na API do Jira. Código: " + statusCode);
+                System.err.println("FALHA na API do Jira. Código: " + statusCode);
                 System.err.println("   Resposta do Jira: " + responseBody);
             }
 
         } catch (HttpTimeoutException e) {
-            System.err.println("❌ ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
+            System.err.println("ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
         } catch (IOException | InterruptedException e) {
-            System.err.println("❌ ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
+            System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
         }
     }
 }
