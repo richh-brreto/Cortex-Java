@@ -2,6 +2,8 @@ package school.sptech.cortex.monitoramento.util;
 
 
 import school.sptech.cortex.monitoramento.modelo.Alerta;
+import school.sptech.cortex.monitoramento.modelo.JiraIssueFields;
+import school.sptech.cortex.monitoramento.modelo.JiraIssueGet;
 import school.sptech.cortex.monitoramento.modelo.Parametro;
 
 import java.io.IOException;
@@ -17,37 +19,32 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
+import java.util.List;
 
-public class JiraTicketCreator {
+
+public class JiraConcatenar {
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     // VARIÁVEIS DE CONFIGURAÇÃO
     private final String jiraUrl;
     private final String jiraUsername;
     private final String jiraApiToken;
-    private final String jiraProjectKey;
-    private final String jiraIssueTypeName;
-    private final String jiraPriorityName;
 
 
     private final HttpClient httpClient;
 
-    public JiraTicketCreator() {
+    public JiraConcatenar() {
         // Leitura das configurações
         this.jiraUrl = ConfiguracaoAmbiente.get("JIRA_URL");
         this.jiraUsername = ConfiguracaoAmbiente.get("JIRA_USERNAME");
         this.jiraApiToken = ConfiguracaoAmbiente.get("JIRA_API_TOKEN");
-        this.jiraProjectKey = ConfiguracaoAmbiente.get("JIRA_PROJECT_KEY");
-        this.jiraIssueTypeName = ConfiguracaoAmbiente.get("JIRA_ISSUE_TYPE_NAME");
-        this.jiraPriorityName = ConfiguracaoAmbiente.get("JIRA_PRIORITY_NAME");
 
 
         // Verificações de configuração obrigatória
         Objects.requireNonNull(jiraUrl, "JIRA_URL não pode ser nulo.");
         Objects.requireNonNull(jiraUsername, "JIRA_USERNAME não pode ser nulo.");
         Objects.requireNonNull(jiraApiToken, "JIRA_API_TOKEN não pode ser nulo.");
-        Objects.requireNonNull(jiraProjectKey, "JIRA_PROJECT_KEY não pode ser nulo.");
-        Objects.requireNonNull(jiraIssueTypeName, "JIRA_ISSUE_TYPE_NAME não pode ser nulo.");
-        Objects.requireNonNull(jiraPriorityName, "JIRA_PRIORITY_NAME não pode ser nulo.");
+
 
 
         // Configuração do Cliente HTTP com timeout de 10 segundos
@@ -58,95 +55,129 @@ public class JiraTicketCreator {
     }
 
 
-    public String criarTicketsCriticos(Alerta alertas) {
+    public void concatenarTicketsCriticos(Alerta alertas, String idJira) {
 
         System.out.println("--- Iniciando verificação de alertas CRÍTICOS para o Jira ---");
 
-            // 1. FILTRAGEM
+        // 1. FILTRAGEM
 
-            try {
+        try {
+            // GET
+            String json = metodoGetJira(idJira);
 
+
+            MapperJiraIssue mapperJson = new MapperJiraIssue();
+            JiraIssueGet fieldsGeral = mapperJson.map(json);
+
+            JiraIssueFields fieldsEspec = fieldsGeral.getFields();
+
+
+                // setando as adições
                 String timestamp = alertas.getTimestamp().format(FORMATADOR_TIMESTAMP);
-                // 2. Formata a mensagem de negócio para o Jira
+
                 String summary = String.format("ALERTA CRÍTICO: Modelo %s Máquina %s - Última Atualização %s",
                         alertas.getNomeModelo(), alertas.getHostname(),timestamp);
 
                 String description = String.format(
-                        "Alerta de Utilização Crítica - Cortex\n\n" +
-                                "O modelo: %s - na máquina: %s ultrapassou o limite crítico de:\n" +
-                                "- %s  - com o uso de: %.2f%% - em: %s",
-                        alertas.getNomeModelo(), alertas.getHostname(), alertas.getTipoMetrica(), alertas.getValorAtual(),
+                        "- %s  - com o uso de: %.2f%% - em: %s",
+                        alertas.getTipoMetrica(), alertas.getValorAtual(),
                         timestamp
-
                 );
 
                 String categoria = alertas.getTipoMetrica().toLowerCase();
 
-                String identificador = alertas.getFk_modelo() + ";" + alertas.getFk_zona() + ";" + alertas.getFk_empresa();
+                // concatenando a string de descrição
+                String descAntiga = adfToPlainText(fieldsEspec.getDescription());
+                String descricaoConcatenada = descAntiga + "\n\n" + description;
 
-                // 3. Monta o JSON de Payload
-                String jsonPayload = buildIssueJson(summary, description, categoria, identificador);
+                // concatenando as labels
 
-                // 4. Envia a requisição
-                String keyJira = enviarRequisicao(jsonPayload);
+            List<String> labels = new ArrayList<>(fieldsEspec.getLabels());
+            labels.add(categoria);
 
-                if(keyJira != null){
-                    return keyJira;
-                }else {
-                    return null;
-                }
+          // 3. Monta o JSON de Payload
+            String jsonPayload = buildIssueJson(summary, descricaoConcatenada, labels);
 
+            // 4. Envia a requisição
+            Boolean keyJira = enviarRequisicao(jsonPayload, idJira);
 
 
-            } catch (Exception e) {
-                System.err.println("ERRO ao processar Alerta para o Jira ");
-                return null;
-            }
+
+
+
+
+
+        } catch (Exception e) {
+            System.err.println("ERRO ao processar Alerta para o Jira ");
+
+        }
 
     }
 
     // --- MÉTODOS PRIVADOS DE SUPORTE ---
 
-    /**
-     * Monta o JSON (Payload) para o Issue no formato ADF, incluindo campos obrigatórios.
-     */
-    private String buildIssueJson(String summary, String descriptionDetails, String categoria, String identificador) {
+
+    private String buildIssueJson(String summary, String descriptionDetails, List<String> categoria) {
         String safeSummary = summary.replace("\"", "\\\"");
         String adfDescription = createAdfDescription(descriptionDetails);
+
+        List<String> categoriaContrario = new ArrayList<>();
+        for(String c : categoria){
+
+                String labelFormatada =  "\"" + c + "\"";
+                categoriaContrario.add(labelFormatada);
+
+        }
+        String categoriaFormatado = "";
+        for (int i = 0; i < categoriaContrario.size(); i++){
+
+            String daVez = categoriaContrario.get(i);
+
+            if(i == 0){
+                categoriaFormatado += daVez;
+            }else {
+                categoriaFormatado += "," + daVez;
+            }
+        }
+
 
         String jsonTemplate =
                 "{" +
                         "\"fields\": {" +
-                        "\"project\": {\"key\": \"%s\"}," +
                         "\"summary\": \"%s\"," +
                         "\"description\": %s," +
-                        "\"issuetype\": {\"name\": \"%s\"}," +
-                        "\"priority\": {\"name\": \"%s\"}," +
-                        "\"labels\": [\"%s\"]," +
-                        "\"customfield_10060\": {\"value\": \"%s\"}," +
-                        "\"customfield_10093\": \"%s\"," +
-                        "\"customfield_10059\": {\"value\": \"%s\"}," +
-                        "\"customfield_10044\": {\"value\": \"%s\"}," +
-                        "\"customfield_10039\": \"%s\"" +
+                        "\"labels\": [%s]" +
                         "}" +
                         "}";
 
         return String.format(
                 jsonTemplate,
-                jiraProjectKey,
                 safeSummary,
-                adfDescription, // adfDescription é um JSON e é inserido sem aspas adicionais
-                jiraIssueTypeName,
-                jiraPriorityName,
-                categoria,
-                "Em Alerta (ticket mais atual)",
-                identificador,
-                "Incidente",
-                "Critical",
-               "Service requests"
+                adfDescription,
+                categoriaFormatado
         );
     }
+    public static String adfToPlainText(Map<String, Object> adf) {
+        StringBuilder sb = new StringBuilder();
 
+        if (adf == null || !adf.containsKey("content")) return null;
+
+        List<Map<String, Object>> contentList = (List<Map<String, Object>>) adf.get("content");
+
+        for (Map<String, Object> block : contentList) {
+            if ("paragraph".equals(block.get("type")) && block.containsKey("content")) {
+                List<Map<String, Object>> texts = (List<Map<String, Object>>) block.get("content");
+                for (Map<String, Object> textNode : texts) {
+                    if ("text".equals(textNode.get("type")) && textNode.containsKey("text")) {
+                        sb.append(textNode.get("text"));
+                    }
+                }
+                sb.append("\n"); // nova linha após cada parágrafo
+            }
+        }
+
+        return sb.toString().trim();
+    }
 
     private String createAdfDescription(String simpleText) {
         // 1. Escapa caracteres que podem quebrar o JSON (principalmente aspas duplas e barras invertidas)
@@ -186,22 +217,20 @@ public class JiraTicketCreator {
     }
 
 
-    /**
-     * Envia a requisição HTTP POST para a API do Jira para criar um Issue.
-     */
-    private String enviarRequisicao(String jsonPayload) {
+
+    private Boolean enviarRequisicao(String jsonPayload, String idJira) {
         try {
             // Cria o cabeçalho de autenticação Basic com o username e API Token
             String authString = jiraUsername + ":" + jiraApiToken;
             String authHeader = "Basic " + Base64.getEncoder().encodeToString(authString.getBytes(StandardCharsets.UTF_8));
 
-            URI uri = URI.create(jiraUrl + "/rest/api/3/issue");
+            URI uri = URI.create(jiraUrl + "/rest/api/3/issue/" + idJira);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
                     .header("Content-Type", "application/json")
                     .header("Authorization", authHeader)
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -211,10 +240,50 @@ public class JiraTicketCreator {
 
             if (statusCode >= 200 && statusCode < 300) {
                 System.out.println("SUCESSO: Ticket do Jira criado. Status HTTP: " + statusCode);
-                String[] parte01 = responseBody.split(",");
-                String[] parte02 = parte01[1].split(":");
 
-                return  parte02[1].replace("\"","").trim();
+                return  true;
+            } else {
+                System.err.println("FALHA na API do Jira. Código: " + statusCode);
+                System.err.println("   Resposta do Jira: " + responseBody);
+                return false;
+            }
+
+        } catch (HttpTimeoutException e) {
+            System.err.println("ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
+            return null;
+        } catch (IOException | InterruptedException e) {
+            System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
+            return null;
+        }
+
+    }
+
+
+    public String metodoGetJira(String idJira){
+        try {
+
+            String authString = jiraUsername + ":" + jiraApiToken;
+            String authHeader = "Basic " + Base64.getEncoder().encodeToString(authString.getBytes(StandardCharsets.UTF_8));
+            // GET /rest/api/3/issue/{issueIdOrKey}?fields=summary,description,labels
+
+            URI uri = URI.create(jiraUrl + "/rest/api/3/issue/" + idJira + "?fields=summary,description,labels");
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Authorization", authHeader)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            int statusCode = response.statusCode();
+            String responseBody = response.body();
+
+            if (statusCode >= 200 && statusCode < 300) {
+                System.out.println("SUCESSO: Ticket do Jira criado. Status HTTP: " + statusCode);
+
+                return  responseBody;
             } else {
                 System.err.println("FALHA na API do Jira. Código: " + statusCode);
                 System.err.println("   Resposta do Jira: " + responseBody);
@@ -228,6 +297,5 @@ public class JiraTicketCreator {
             System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
             return null;
         }
-
     }
 }

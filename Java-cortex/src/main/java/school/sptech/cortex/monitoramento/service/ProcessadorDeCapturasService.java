@@ -29,6 +29,8 @@ public class ProcessadorDeCapturasService {
             String fk_empresa,
             String hostname,
             String nomeModelo
+
+            // BOOLEAN DOWNTIME -> não vai checar o tempo, apenas o limite
     ) {
         // Validação básica
         if (limiteCritico == null || tempoBaseMinutos == null || tempoBaseMinutos <= 0) return null;

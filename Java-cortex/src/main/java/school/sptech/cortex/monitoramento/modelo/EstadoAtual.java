@@ -1,22 +1,41 @@
 package school.sptech.cortex.monitoramento.modelo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDateTime;
 
 public class EstadoAtual {
+
+    @JsonProperty("cpu")
     private Boolean cpu;
+
+    // Mapeia o campo "document" do JSON para o atributo "cpf"
+    @JsonProperty("ram")
     private Boolean ram;
-    private Boolean gpu;
+
+    @JsonProperty("disco")
     private Boolean disco;
+
+    @JsonProperty("gpu")
+    private Boolean gpu;
+
+    @JsonProperty("timestamp")
     private LocalDateTime timestamp;
+
+    @JsonProperty("idJira")
     private String idJira;
 
-    public EstadoAtual(Boolean cpu, Boolean ram, Boolean gpu, Boolean disco, LocalDateTime timestamp, String idJira) {
+    @JsonProperty("ultimoTimestamp")
+    private LocalDateTime ultimoTimestamp;
+
+    public EstadoAtual(Boolean cpu, Boolean ram, Boolean disco, Boolean gpu, LocalDateTime timestamp, String idJira, LocalDateTime ultimoTimestamp) {
         this.cpu = cpu;
         this.ram = ram;
-        this.gpu = gpu;
         this.disco = disco;
+        this.gpu = gpu;
         this.timestamp = timestamp;
         this.idJira = idJira;
+        this.ultimoTimestamp = ultimoTimestamp;
     }
 
     public Boolean getCpu() {
@@ -35,20 +54,20 @@ public class EstadoAtual {
         this.ram = ram;
     }
 
-    public Boolean getGpu() {
-        return gpu;
-    }
-
-    public void setGpu(Boolean gpu) {
-        this.gpu = gpu;
-    }
-
     public Boolean getDisco() {
         return disco;
     }
 
     public void setDisco(Boolean disco) {
         this.disco = disco;
+    }
+
+    public Boolean getGpu() {
+        return gpu;
+    }
+
+    public void setGpu(Boolean gpu) {
+        this.gpu = gpu;
     }
 
     public LocalDateTime getTimestamp() {
@@ -65,5 +84,13 @@ public class EstadoAtual {
 
     public void setIdJira(String idJira) {
         this.idJira = idJira;
+    }
+
+    public LocalDateTime getUltimoTimestamp() {
+        return ultimoTimestamp;
+    }
+
+    public void setUltimoTimestamp(LocalDateTime ultimoTimestamp) {
+        this.ultimoTimestamp = ultimoTimestamp;
     }
 }

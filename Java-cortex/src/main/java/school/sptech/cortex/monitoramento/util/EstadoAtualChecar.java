@@ -24,7 +24,16 @@ public class EstadoAtualChecar {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            try {
+                EstadoAtualWriter writer = new EstadoAtualWriter();
+                writer.escreverEstadoAtual(nomeArquivo, trusted, s3Client);
+
+                return null;
+
+            } catch (Exception e2) {
+                e2.printStackTrace();
+                return null;
+            }
         }
     }
 }

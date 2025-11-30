@@ -25,7 +25,12 @@ public class Parametro {
         this.tempoParametroMin = tempoParametroMin;
     }
 
-    public Parametro() {
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getNomeEmpresa() {
@@ -34,14 +39,6 @@ public class Parametro {
 
     public void setNomeEmpresa(String nomeEmpresa) {
         this.nomeEmpresa = nomeEmpresa;
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
     }
 
     public String getNome() {

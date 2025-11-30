@@ -49,7 +49,14 @@ public class CsvHistoricoReader {
 
                     LocalDateTime timestamp = LocalDateTime.parse(dados[8], FORMATADOR_TIMESTAMP);
 
-                    HistoricoAlerta novoHistorico = new HistoricoAlerta(cpu, ram, gpu, disco, valorCpu, valorGpu, valorDisco, valorRam, timestamp);
+                    Boolean downtimeServer = Boolean.parseBoolean(dados[9]);
+                    Boolean downtimeProcesso = Boolean.parseBoolean(dados[10]);
+                    Double cpuProcesso = Double.parseDouble(dados[11]);
+                    Double ramProcesso = Double.parseDouble(dados[12]);
+                    Double gpuProcesso = Double.parseDouble(dados[13]);
+
+                    HistoricoAlerta novoHistorico = new HistoricoAlerta(cpu, ram, gpu, disco, valorCpu, valorGpu, valorDisco, valorRam, timestamp,
+                            downtimeServer,downtimeProcesso,cpuProcesso,ramProcesso,gpuProcesso);
 
                     historico.add(novoHistorico);
 
@@ -75,9 +82,11 @@ public class CsvHistoricoReader {
 
             }catch (Exception erro){
                 System.out.println("Erro ao escrever arquivo");
+                erro.printStackTrace();
+
                 System.exit(1);
             }
         }
-        return null;
+        return historico;
     }
 }

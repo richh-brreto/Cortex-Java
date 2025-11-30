@@ -1,10 +1,9 @@
 package school.sptech.cortex.monitoramento.util;
 
+import com.amazonaws.services.s3.AmazonS3;
 import school.sptech.cortex.monitoramento.modelo.CapturaProcesso;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,13 +14,14 @@ public class CsvProcessoReader {
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static final double BYTES_PARA_GB = 1073741824.0;
 
-    public List<CapturaProcesso> lerECarregarCapturasProcesso(String caminhoArquivo) {
+    public List<CapturaProcesso> lerECarregarCapturasProcesso(String caminhoArquivo, String trusted, AmazonS3 s3Client) {
         List<CapturaProcesso> capturas = new ArrayList<>();
         String linha;
         int numeroLinha = 0;
         final int COLUNAS_ESPERADAS = 10;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(caminhoArquivo))) {
+        InputStream s3InputStream = s3Client.getObject(trusted, caminhoArquivo).getObjectContent();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
             br.readLine(); // Pula o cabeçalho
             numeroLinha++;
 
@@ -36,9 +36,9 @@ public class CsvProcessoReader {
 
                 try {
                     // 1. EXTRAÇÃO E VALIDAÇÃO BÁSICA
-                    String fk_modelo = validarString(dados[0], "IP", numeroLinha);
-                    String fk_zona = validarString(dados[1], "Hostname", numeroLinha);
-                    String fk_empresa = validarString(dados[2], "Hostname", numeroLinha);
+                    String fk_modelo = validarString(dados[0], "fk_modelo", numeroLinha);
+                    String fk_zona = validarString(dados[1], "fk_zona", numeroLinha);
+                    String fk_empresa = validarString(dados[2], "fk_empresa", numeroLinha);
                     String timestampStr = validarString(dados[3], "Timestamp", numeroLinha);
                     String nomeProcesso = validarString(dados[4], "Nome Processo", numeroLinha);
 

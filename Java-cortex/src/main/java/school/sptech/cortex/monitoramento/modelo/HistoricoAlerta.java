@@ -12,8 +12,13 @@ public class HistoricoAlerta {
     private  Double valorDisco;
     private Double valorRam;
     private LocalDateTime timestamp;
+    private Boolean downtimeServer;
+    private Boolean downtimeProcesso;
+    private Double cpu_processo;
+    private Double ram_processo;
+    private Double gpu_processo;
 
-    public HistoricoAlerta(Boolean cpu, Boolean ram, Boolean gpu, Boolean disco, Double valorCpu, Double valorGpu, Double valorDisco, Double valorRam, LocalDateTime timestamp) {
+    public HistoricoAlerta(Boolean cpu, Boolean ram, Boolean gpu, Boolean disco, Double valorCpu, Double valorGpu, Double valorDisco, Double valorRam, LocalDateTime timestamp, Boolean downtimeServer, Boolean downtimeProcesso, Double cpu_processo, Double ram_processo, Double gpu_processo) {
         this.cpu = cpu;
         this.ram = ram;
         this.gpu = gpu;
@@ -23,6 +28,11 @@ public class HistoricoAlerta {
         this.valorDisco = valorDisco;
         this.valorRam = valorRam;
         this.timestamp = timestamp;
+        this.downtimeServer = downtimeServer;
+        this.downtimeProcesso = downtimeProcesso;
+        this.cpu_processo = cpu_processo;
+        this.ram_processo = ram_processo;
+        this.gpu_processo = gpu_processo;
     }
 
     public Boolean getCpu() {
@@ -95,5 +105,45 @@ public class HistoricoAlerta {
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Boolean getDowntimeServer() {
+        return downtimeServer;
+    }
+
+    public void setDowntimeServer(Boolean downtimeServer) {
+        this.downtimeServer = downtimeServer;
+    }
+
+    public Boolean getDowntimeProcesso() {
+        return downtimeProcesso;
+    }
+
+    public void setDowntimeProcesso(Boolean downtimeProcesso) {
+        this.downtimeProcesso = downtimeProcesso;
+    }
+
+    public Double getCpu_processo() {
+        return cpu_processo;
+    }
+
+    public void setCpu_processo(Double cpu_processo) {
+        this.cpu_processo = cpu_processo;
+    }
+
+    public Double getRam_processo() {
+        return ram_processo;
+    }
+
+    public void setRam_processo(Double ram_processo) {
+        this.ram_processo = ram_processo;
+    }
+
+    public Double getGpu_processo() {
+        return gpu_processo;
+    }
+
+    public void setGpu_processo(Double gpu_processo) {
+        this.gpu_processo = gpu_processo;
     }
 }
