@@ -1,6 +1,41 @@
-json: 
-            título: id modelo.json 
-            colunas: cpu (boolean), ram(boolean), disco(boolean), gpu(boolean), timestamp, id_ticket_jira       
-csv histórico:
-        título:id modelo;id ticket jira.csv
-        colunas: cpu(boolean), ram(boolean), dsico(boolean), gpu (boolean), %_cpu, % ram, %disco, %gpu, timestamp  
+
+JSON PARA O CLIENT
+{
+  "duracao_alerta": "00:10:02",
+  "downtime_servidor": "00:00:00",
+  "downtime_processo": "00:00:00",
+  "linha_do_tempo": [
+    "Início CPU - 10/11/2025_11:10:30",
+   "Início CPU - 10/11/2025_11:10:30",
+   "Início RAM - 10/11/2025_11:12:20",
+    "Fim RAM - 10/11/2025_11:12:50",
+    "Início GPU - 10/11/2025_11:13:20",
+    "Início Downtime Processo - timestamp",
+    "Fim CPU - 10/11/2025_11:14:20",
+    "Fim GPU - 10/11/2025_11:14:25",
+    "Início Disco - 10/11/2025_11:14:40",
+    "Fim Disco - 10/11/2025_11:15:00",
+    "Início Downtime Servidor - timestamp"
+  ],
+  "duracao_cpu": "00:00:00",
+  "duracao_ram": "00:00:00",
+  "duracao_gpu": "00:00:00",
+  "duracao_disco": "00:00:00"
+}
+
+Vou mandar também o CSV Historico para o client e transformar em json no JS
+
+Lógica trusted-client:
+
+-receber arquivo
+-Ler arquivo
+-Transformar em objeto
+-Objetos: (RegistroHistorico, JsonDashTicket)
+        -ProcessadorDowntime (retorna Lista<String> com: [0] downtime_servidor, [1] downtime_servidor)
+                - parametros: lista de objetos do historico
+        -ProcessadorDuracao (retorna Lista<String> com: [0] duracao_alerta,[1] duracao_cpu, [2]duracao_ram,[3] duracao_gpu, [4]duracao_disco)
+                - parametros: lista de objetos do historico
+        -FazerLinha do tempo (retorna Lista<String> com todos os logs)
+- Passar por todos os processadores E criar um objeto do json passando os parametros corretos
+- Pegar fk_modelo,idJira no titulo do arquivo de histórico
+- Criar, escrever e mandar para o bucket um json do ticket (titulo: fk_modelo;idJira;dashTicket.json)
