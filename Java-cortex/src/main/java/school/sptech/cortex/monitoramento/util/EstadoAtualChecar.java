@@ -14,7 +14,7 @@ public class EstadoAtualChecar {
     public EstadoAtual checarEstadoAtual(String nomeArquivo, AmazonS3 s3Client, String trusted){
 
         try {
-            InputStream jsonEstado = s3Client.getObject(trusted, nomeArquivo).getObjectContent();
+            InputStream jsonEstado = s3Client.getObject(trusted,"arquivos_apoio/"+ nomeArquivo).getObjectContent();
 
             MapperEstadoAtual mapperEstadoAtual = new MapperEstadoAtual();
 

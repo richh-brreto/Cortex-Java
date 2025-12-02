@@ -1,6 +1,7 @@
 package school.sptech.cortex.monitoramento.app;
 
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -22,29 +23,32 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Aplicacao implements RequestHandler<S3Event, String> {
 
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
-    private static final String DESTINATION_BUCKET = "trusted-stocks";
-    private static final String SOURCE = "raw";
+    private static final String DESTINATION_BUCKET = "cortex-trusted-s3-bck";
+    private static final String SOURCE = "cortex-raw-s3-bck";
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 
     @Override
     public String handleRequest(S3Event s3Event, Context context) {
 
-        System.out.println("=================================================");
-        System.out.println("   CORTEX - INICIANDO PROCESSO DE MONITORAMENTO  ");
-        System.out.println("=================================================");
+        LambdaLogger logger = context.getLogger();
+
+        logger.log("=================================================");
+        logger.log("   CORTEX - INICIANDO PROCESSO DE MONITORAMENTO  ");
+        logger.log("=================================================");
 
 
         String sourceBucket = s3Event.getRecords().get(0).getS3().getBucket().getName();
         String sourceKey = s3Event.getRecords().get(0).getS3().getObject().getKey();
 
         // 1. LEITURA E CARREGAMENTO DOS DADOS DO CSV
-        System.out.printf("\n[1] Lendo capturas do arquivo: %s%n", sourceKey);
+        logger.log("\n[1] Lendo capturas do arquivo:" + sourceKey);
 
 
         try {
@@ -54,42 +58,50 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
             List<CapturaSistema> capturas = reader.lerECarregarCapturasSistema(s3InputStream);
 
             // AQUI VAI COMEÇAR O TRATAMENTO DE ALERTAS
-            checarAlerta(capturas, sourceKey);
+            checarAlerta(capturas, sourceKey, logger);
 
 
-            System.out.printf("-> Exportando capturas para o arquivo de saída: %s%n", sourceKey);
+            logger.log("-> Exportando capturas para o arquivo de saída:" + sourceKey);
             CsvWriter csvWriter = new CsvWriter();
             ByteArrayOutputStream csvOutputStream = csvWriter.writeCsv(capturas);
 
             InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
             s3Client.putObject(DESTINATION_BUCKET, sourceKey, csvInputStream, null);
 
-
+            s3InputStream.close();
+            csvInputStream.close();
+            csvOutputStream.close();
             return "Processamento concluído;";
         }catch (Exception e) {
             context.getLogger().log("Erro: " + e.getMessage());
-            e.printStackTrace();
+            logger.log(Arrays.toString(e.getStackTrace()));
             return "Erro no processamento";
         }
 
     }
 
 
-    public void checarAlerta(List<CapturaSistema> capturas, String sourceKey){
-        ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService();
+    public void checarAlerta(List<CapturaSistema> capturas, String sourceKey, LambdaLogger logger)  throws Exception{
+        if (capturas == null || capturas.isEmpty()) {
+            logger.log("Erro: Capturas está vazio");
+            throw new IllegalStateException("Lista de capturas vazia");
+        }
 
-        String[] splitTitulo = sourceKey.split(";");
+        ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService();
+        String[] splitTitulo2 = sourceKey.split("/");
+        String[] splitTitulo = splitTitulo2[1].split(";");
+
         String timestampTituloStr = splitTitulo[0];
         LocalDateTime timestampTitulo = LocalDateTime.parse(timestampTituloStr, FORMATADOR_TIMESTAMP);
 
-        if(capturas.isEmpty()){
-            System.out.println("Capturas está vazio");
-            return;
-        } ;
+
         LimiteDAO limiteComando = new LimiteDAO();
         Parametro limite = limiteComando.buscarLimitesPorMaquina(capturas.get(0).getFk_modelo());
 
-
+        if (limite == null) {
+            logger.log("Erro: Não foi possível achar limites da máquina");
+            throw new IllegalStateException("Limites da máquina não encontrados para: " + capturas.get(0).getFk_modelo());
+        }
 
         String fk_modelo = capturas.get(0).getFk_modelo();
         String fk_zona = capturas.get(0).getFk_zona();
@@ -100,9 +112,14 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
         String jsonEstadoAtual = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + "estadoAtual.json";
         EstadoAtual estadoAlerta = estado.checarEstadoAtual(jsonEstadoAtual, s3Client, DESTINATION_BUCKET);
 
+        if (estadoAlerta == null) {
+            logger.log("Erro: Estado Atual não encontrado");
+            throw new IllegalStateException("Estado Atual não encontrado: " + jsonEstadoAtual);
+        }
+
         if((estadoAlerta.getGpu() || estadoAlerta.getCpu() || estadoAlerta.getRam() ||
                 estadoAlerta.getDisco()) && estadoAlerta.getTimestamp() != null){
-            if(timestampTitulo.plusMinutes(6).isAfter(estadoAlerta.getTimestamp())){
+            if(estadoAlerta.getTimestamp().plusMinutes(6).isAfter(timestampTitulo)){
                 // DOWNTIME
                 // csv Historico
 
@@ -136,9 +153,12 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
         estadoAlerta.setUltimoTimestamp(timestampTitulo);
         CsvHistoricoReader leitor = new CsvHistoricoReader();
 
-        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + estadoAlerta.getIdJira() + "historico.csv";
+        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + estadoAlerta.getIdJira() + ";" + "historico.csv";
         // Lembrar que se não existir vai retornar como null
         List<HistoricoAlerta> historico = leitor.leExibeArquivoCsv(nome_arquivo_historico,s3Client,DESTINATION_BUCKET);
+
+
+
 
         SlackNotifier slack = new SlackNotifier();
         JiraTicketCreator jira = new JiraTicketCreator();
@@ -154,7 +174,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
         processoDAO processoComando = new processoDAO();
         String nomeProcesso = processoComando.buscarNomeProcessoPrincipal(fk_modelo);
 
-        String arquivoProcesso = "Processos;" + sourceKey;
+        String arquivoProcesso = "Processos;" + splitTitulo2;
 
         ProcessadorDeProcessos processadorProcesso = new ProcessadorDeProcessos();
         List<CapturaProcessoPrincipal> histProcessoPrncipal = processadorProcesso.historicoProcesso(s3Client,arquivoProcesso,SOURCE,nomeProcesso);
@@ -189,7 +209,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             // CONCATENAR
                             concatenar.concatenarTicketsCriticos(cpu, estadoAlerta.getIdJira());
                         } else {
-                            if (estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
+                            if (estadoAlerta.getTimestamp() == null || estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
                                 // Configura novo ticket
                                 // Criar novo Ticket
                                 // retorna o id do ticket do jira
@@ -240,7 +260,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             // CONCATENAR
                             concatenar.concatenarTicketsCriticos(gpu, estadoAlerta.getIdJira());
                         } else {
-                            if (estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
+                            if (estadoAlerta.getTimestamp() == null || estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
                                 // Configura novo ticket
                                 // Criar novo Ticket
                                 // retorna o id do ticket do jira
@@ -291,7 +311,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             // CONCATENAR
                             concatenar.concatenarTicketsCriticos(ram, estadoAlerta.getIdJira());
                         } else {
-                            if (estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
+                            if (estadoAlerta.getTimestamp() == null || estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
                                 // Configura novo ticket
                                 // Criar novo Ticket
                                 // retorna o id do ticket do jira
@@ -342,7 +362,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                             // CONCATENAR
                             concatenar.concatenarTicketsCriticos(disco, estadoAlerta.getIdJira());
                         } else {
-                            if (estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
+                            if (estadoAlerta.getTimestamp() == null || estadoAlerta.getTimestamp().plusMinutes(3).isAfter(c.getTimestamp())) {
                                 // Configura novo ticket
                                 // Criar novo Ticket
                                 // retorna o id do ticket do jira
@@ -411,7 +431,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
 
 
         CsvHistoricoWriter writer = new CsvHistoricoWriter();
-        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + idJira + "historico.csv";
+        String nome_arquivo_historico = fk_modelo + ";" + fk_zona + ";" + fk_empresa + ";" + idJira + ";" + "historico.csv";
         writer.escreverCsv(DESTINATION_BUCKET,s3Client,historico,nome_arquivo_historico);
 
     }

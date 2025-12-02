@@ -19,11 +19,11 @@ public class AlertaProvavelWriter {
             String conteudoAlertaProvavel = mapper.writeValueAsString(alertasProvavel);
             InputStream json = new ByteArrayInputStream(conteudoAlertaProvavel.getBytes("UTF-8"));
 
-            s3Client.putObject(trusted, nomeArquivo, json, null);
+            s3Client.putObject(trusted, "arquivos_apoio/" + nomeArquivo, json, null);
 
         }catch (Exception erro){
             System.out.println("Erro ao escrever arquivo");
-            System.exit(1);
+
         }
     }
 

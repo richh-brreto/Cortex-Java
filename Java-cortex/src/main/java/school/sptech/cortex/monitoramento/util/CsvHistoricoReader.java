@@ -27,7 +27,7 @@ public class CsvHistoricoReader {
         try {
               // colocar o nome do csv
 
-            InputStream s3InputStream = s3Client.getObject(trusted, nomeArquivo).getObjectContent();
+            InputStream s3InputStream = s3Client.getObject(trusted, "jira/"+ nomeArquivo).getObjectContent();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
 
                 br.readLine(); // Pula o cabeçalho
@@ -78,13 +78,13 @@ public class CsvHistoricoReader {
                 CsvHistoricoNovoWriter escritor = new CsvHistoricoNovoWriter();
                 ByteArrayOutputStream novoCsv = escritor.writeCsv();
                 InputStream csvInputStream = new ByteArrayInputStream(novoCsv.toByteArray());
-                s3Client.putObject(trusted, nomeArquivo, csvInputStream, null);
-
+                s3Client.putObject(trusted,"jira/" + nomeArquivo, csvInputStream, null);
+                return historico;
             }catch (Exception erro){
                 System.out.println("Erro ao escrever arquivo");
                 erro.printStackTrace();
 
-                System.exit(1);
+
             }
         }
         return historico;

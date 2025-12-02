@@ -30,7 +30,7 @@ public class ProcessadorDeCapturasService {
             String hostname,
             String nomeModelo
 
-            // BOOLEAN DOWNTIME -> não vai checar o tempo, apenas o limite
+
     ) {
         // Validação básica
         if (limiteCritico == null || tempoBaseMinutos == null || tempoBaseMinutos <= 0) return null;
@@ -89,7 +89,7 @@ public class ProcessadorDeCapturasService {
         List<AlertaProvavel> listaAlertasProvaveis = new ArrayList<>();
 
         try {
-            InputStream arquivoPossibilidade = s3Client.getObject(trusted, jsonPossibilidade).getObjectContent();
+            InputStream arquivoPossibilidade = s3Client.getObject(trusted, "arquivos_apoio/"+jsonPossibilidade).getObjectContent();
 
             MapperAlertaProvavel mapperAlertaProvavel= new MapperAlertaProvavel();
 

@@ -36,6 +36,7 @@ public class SlackNotifier {
 
         } catch (Exception e) {
             System.err.println("ERRO FATAL ao enviar alertas para o Slack: " + e.getMessage());
+
         }
     }
 

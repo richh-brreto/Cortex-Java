@@ -10,10 +10,11 @@ import school.sptech.cortex.monitoramento.modelo.CapturaSistema;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class CsvWriter {
-
+    private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     public ByteArrayOutputStream writeCsv(List<CapturaSistema> capturas) throws IOException{
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -26,7 +27,7 @@ public class CsvWriter {
                     captura.getFk_modelo(),
                     captura.getFk_zona(),
                     captura.getFk_empresa(),
-                    captura.getTimestamp(),
+                    captura.getTimestamp().format(FORMATADOR_TIMESTAMP),
                     captura.getCpu(),
                     captura.getRam(),
                     captura.getArmazenamento(),

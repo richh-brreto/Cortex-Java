@@ -100,6 +100,7 @@ public class JiraTicketCreator {
 
             } catch (Exception e) {
                 System.err.println("ERRO ao processar Alerta para o Jira ");
+
                 return null;
             }
 
@@ -223,11 +224,14 @@ public class JiraTicketCreator {
 
         } catch (HttpTimeoutException e) {
             System.err.println("ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
+
             return null;
         } catch (IOException | InterruptedException e) {
             System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
+
             return null;
         }
 
     }
+
 }

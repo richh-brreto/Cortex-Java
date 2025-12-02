@@ -28,6 +28,7 @@ public class ProcessadorDeProcessos {
         for (int i = 0; i < listaCompleta.size();i++){
             // guardar todos os timestamps não repetidos
             CapturaProcesso completoIndex = listaCompleta.get(i);
+
             LocalDateTime anterior = completoIndex.getTimestamp().plusMinutes(1);
             if(i != 0){
                 anterior = listaCompleta.get(i - 1).getTimestamp();
@@ -65,6 +66,7 @@ public class ProcessadorDeProcessos {
 
                         break;
                     }
+                    }
                     if(!tem){
                         CapturaProcessoPrincipal capturaInvisivel =new CapturaProcessoPrincipal(dadosTimestamp.get(j),
                                 0.0,
@@ -75,7 +77,7 @@ public class ProcessadorDeProcessos {
                         invisiveis.add(capturaInvisivel);
                     }
                     tem = false;
-                }
+
 
             }
             for(int m = 0; m < index.size();m++){

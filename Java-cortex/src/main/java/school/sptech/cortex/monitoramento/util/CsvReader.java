@@ -53,7 +53,7 @@ public class CsvReader {
                     // Conversão e Validação de Range [0.0, 100.0]
                     Double cpu = validarRange(dados[4], "CPU", numeroLinha);
                     Double ram = validarRange(dados[5], "RAM", numeroLinha);
-                    Double armazenamento = validarRange(dados[6], "Armazenamento", numeroLinha);
+                    Double armazenamento = Double.valueOf(dados[6]);
                     Double discoUso = validarRange(dados[7], "Disco Uso", numeroLinha);
                     Double gpu = validarRange(dados[8], "GPU", numeroLinha);
 

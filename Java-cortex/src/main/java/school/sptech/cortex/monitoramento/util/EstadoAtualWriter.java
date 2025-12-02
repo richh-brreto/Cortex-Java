@@ -19,11 +19,11 @@ public class EstadoAtualWriter {
             String conteudoEstado = mapper.writeValueAsString(novoEstado);
             InputStream json = new ByteArrayInputStream(conteudoEstado.getBytes("UTF-8"));
 
-            s3Client.putObject(trusted, nomeArquivo, json, null);
+            s3Client.putObject(trusted, "arquivos_apoio/" + nomeArquivo, json, null);
 
         }catch (Exception erro){
             System.out.println("Erro ao escrever arquivo");
-            System.exit(1);
+
         }
     }
     public static void escreverEstadoAtual(String nomeArquivo, String trusted, AmazonS3 s3Client) {
@@ -35,11 +35,11 @@ public class EstadoAtualWriter {
             String conteudoEstado = mapper.writeValueAsString(novo);
             InputStream json = new ByteArrayInputStream(conteudoEstado.getBytes("UTF-8"));
 
-            s3Client.putObject(trusted, nomeArquivo, json, null);
+            s3Client.putObject(trusted, "arquivos_apoio/" + nomeArquivo, json, null);
 
         }catch (Exception erro){
             System.out.println("Erro ao escrever arquivo");
-            System.exit(1);
+
         }
     }
 }

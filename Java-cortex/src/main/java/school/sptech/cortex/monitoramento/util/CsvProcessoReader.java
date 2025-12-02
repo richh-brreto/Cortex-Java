@@ -20,7 +20,7 @@ public class CsvProcessoReader {
         int numeroLinha = 0;
         final int COLUNAS_ESPERADAS = 10;
 
-        InputStream s3InputStream = s3Client.getObject(trusted, caminhoArquivo).getObjectContent();
+        InputStream s3InputStream = s3Client.getObject(trusted, "processos/"+caminhoArquivo).getObjectContent();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
             br.readLine(); // Pula o cabeçalho
             numeroLinha++;

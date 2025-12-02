@@ -57,10 +57,11 @@ public class CsvHistoricoWriter {
             ByteArrayInputStream inputStream =
                     new ByteArrayInputStream(outputStream.toByteArray());
 
-            s3Client.putObject(bucket, nomeArquivo, inputStream, null);
-
+            s3Client.putObject(bucket, "jira/" + nomeArquivo, inputStream, null);
+            inputStream.close();
         }catch (Exception e){
             e.printStackTrace();
+
         }
     }
 }
