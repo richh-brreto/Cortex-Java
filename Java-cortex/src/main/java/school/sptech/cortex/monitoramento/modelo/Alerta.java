@@ -9,11 +9,13 @@ public class Alerta {
         private  final  String fk_empresa;
         private final String nomeModelo;
         private final String hostname;
-        private final String tipoMetrica; // Ex: CPU, RAM, Disco
+        private final String tipoMetrica;
+       // Ex: CPU, RAM, Disco
         private final double valorAtual;
-        private final LocalDateTime timestamp; // Para facilitar a formatação no Slack/Jira
+        private final LocalDateTime timestamp;
+        private final String ip;// Para facilitar a formatação no Slack/Jira
 
-    public Alerta(String tipo, String fk_modelo, String fk_zona, String fk_empresa, String nomeModelo, String hostname, String tipoMetrica, double valorAtual, LocalDateTime timestamp) {
+    public Alerta(String tipo, String fk_modelo, String fk_zona, String fk_empresa, String nomeModelo, String hostname, String tipoMetrica, double valorAtual, LocalDateTime timestamp, String ip) {
         this.tipo = tipo;
         this.fk_modelo = fk_modelo;
         this.fk_zona = fk_zona;
@@ -23,6 +25,11 @@ public class Alerta {
         this.tipoMetrica = tipoMetrica;
         this.valorAtual = valorAtual;
         this.timestamp = timestamp;
+        this.ip = ip;
+    }
+
+    public String getIp() {
+        return ip;
     }
 
     public String getHostname() {

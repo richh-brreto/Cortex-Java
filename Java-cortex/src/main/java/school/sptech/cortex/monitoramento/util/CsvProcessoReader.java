@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import school.sptech.cortex.monitoramento.modelo.CapturaProcesso;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,7 +21,14 @@ public class CsvProcessoReader {
         int numeroLinha = 0;
         final int COLUNAS_ESPERADAS = 10;
 
-        InputStream s3InputStream = s3Client.getObject(trusted, "processos/"+caminhoArquivo).getObjectContent();
+        String chaveDecodificadora = null;
+        try {
+            chaveDecodificadora = URLDecoder.decode(caminhoArquivo, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+
+        InputStream s3InputStream = s3Client.getObject(trusted, "processos/"+chaveDecodificadora).getObjectContent();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
             br.readLine(); // Pula o cabeçalho
             numeroLinha++;

@@ -1,16 +1,14 @@
 package school.sptech.cortex.monitoramento.conexao;
 
-import school.sptech.cortex.monitoramento.util.ConfiguracaoAmbiente;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class MySQLConnection {
 
-    private static final String URL = ConfiguracaoAmbiente.get("DB_URL");
-    private static final String USUARIO = ConfiguracaoAmbiente.get("DB_USER");
-    private static final String SENHA = ConfiguracaoAmbiente.get("DB_PASSWORD");
+   // private static final String URL =
+    //private static final String USUARIO =
+   // private static final String SENHA =
 
     public static Connection conectar() throws SQLException {
         try {

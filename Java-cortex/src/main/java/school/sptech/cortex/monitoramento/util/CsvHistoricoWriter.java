@@ -1,5 +1,6 @@
 package school.sptech.cortex.monitoramento.util;
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.s3.AmazonS3;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -7,6 +8,7 @@ import school.sptech.cortex.monitoramento.modelo.CapturaProcessoPrincipal;
 import school.sptech.cortex.monitoramento.modelo.HistoricoAlerta;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -17,14 +19,11 @@ public class CsvHistoricoWriter {
 
     public void escreverCsv(String bucket, AmazonS3 s3Client,
                             List<HistoricoAlerta> novosRegistros,
-                            String nomeArquivo){
+                            String nomeArquivo, LambdaLogger logger){
 
         try {
-            List<HistoricoAlerta> registrosAntigos = new CsvHistoricoReader().leExibeArquivoCsv(nomeArquivo,s3Client,bucket);
+            logger.log("Começando a escrever um historico q já existe");
 
-            for(HistoricoAlerta h : novosRegistros){
-                registrosAntigos.add(h);
-            }
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
@@ -32,7 +31,7 @@ public class CsvHistoricoWriter {
                     "gpu", "valorCpu" , "valorRam" , "valorGpu" , "valorDisco", "timestamp","downtime_server",
                     "downtime_processo","cpu_processo","ram_processo","gpu_processo"));
 
-            for(HistoricoAlerta h : registrosAntigos){
+            for(HistoricoAlerta h : novosRegistros){
                 csvPrinter.printRecord(
                         h.getCpu(),
                         h.getRam(),
@@ -60,7 +59,7 @@ public class CsvHistoricoWriter {
             s3Client.putObject(bucket, "jira/" + nomeArquivo, inputStream, null);
             inputStream.close();
         }catch (Exception e){
-            e.printStackTrace();
+            throw  new RuntimeException("Erro ao escrever arquivo");
 
         }
     }

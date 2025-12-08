@@ -1,9 +1,13 @@
 package school.sptech.cortex.monitoramento.util;
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import school.sptech.cortex.monitoramento.modelo.HistoricoAlerta;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,16 +24,14 @@ public class CsvHistoricoReader {
 
     public List<HistoricoAlerta> leExibeArquivoCsv(String nomeArquivo,
                                                    AmazonS3 s3Client,
-                                                   String trusted
+                                                   String trusted, LambdaLogger logger
                                                   ) {
         List<HistoricoAlerta> historico = new ArrayList<>();
 
-        try {
+        try (InputStream s3InputStream = s3Client.getObject(trusted, "jira/"+ nomeArquivo).getObjectContent();
+             BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))){
               // colocar o nome do csv
-
-            InputStream s3InputStream = s3Client.getObject(trusted, "jira/"+ nomeArquivo).getObjectContent();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(s3InputStream))) {
-
+                logger.log("Lendo arquivo");
                 br.readLine(); // Pula o cabeçalho
 
 
@@ -62,31 +64,39 @@ public class CsvHistoricoReader {
 
 
                 }
+                logger.log("fim do while");
                 return historico;
-            } catch (NoSuchElementException erro) {
-                System.out.println("Arquivo com problemas!");
-                erro.printStackTrace();
 
-            } catch (IllegalStateException | IOException erro) {
-                System.out.println("Erro na leitura do arquivo!");
-                erro.printStackTrace();
-            }
 
         }catch (Exception e3){
-            try{
 
+
+            boolean isUnrecoverableS3Error = (e3 instanceof AmazonS3Exception) && ((AmazonS3Exception) e3).getStatusCode() != 404;
+            if (isUnrecoverableS3Error) {
+                logger.log("ERRO IRRECUPERÁVEL DE S3 (não 404): " + e3.getMessage());
+                throw new RuntimeException("Falha de S3 ao ler Historico.", e3);
+            }
+            logger.log("Arquivo Historico não encontrado (404). Criando novo buffer...");
+
+
+            try {
                 CsvHistoricoNovoWriter escritor = new CsvHistoricoNovoWriter();
                 ByteArrayOutputStream novoCsv = escritor.writeCsv();
                 InputStream csvInputStream = new ByteArrayInputStream(novoCsv.toByteArray());
+
+
+
+
                 s3Client.putObject(trusted,"jira/" + nomeArquivo, csvInputStream, null);
+
+                csvInputStream.close();
+
+                logger.log("CSV histórico criado e enviado para S3: " + nomeArquivo);
                 return historico;
-            }catch (Exception erro){
-                System.out.println("Erro ao escrever arquivo");
-                erro.printStackTrace();
-
-
+            } catch (Exception erro) {
+                throw new RuntimeException("Erro ao criar arquivo");
             }
         }
-        return historico;
+
     }
 }

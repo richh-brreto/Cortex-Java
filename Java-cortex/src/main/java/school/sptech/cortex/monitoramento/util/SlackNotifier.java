@@ -13,7 +13,7 @@ import java.util.List;
 
 
 public class SlackNotifier {
-    private static final String SLACK_WEBHOOK_URL = ConfiguracaoAmbiente.get("SLACK_WEBHOOK_URL");
+   // private static final String SLACK_WEBHOOK_URL =
     private static final java.time.format.DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     // O cliente HTTP é criado uma vez e reutilizado
     private final HttpClient httpClient = HttpClient.newBuilder().build();
@@ -48,18 +48,20 @@ public class SlackNotifier {
         String notificacao = null;
         if (alertas.getTipo().equals("Atencao")){
              notificacao = String.format(
-                    "ATENÇÃO! Modelo %s que está na Máquina %s está com a %s em %.2f%% em %s",
+                    "Tipo: ATENÇÃO!\nModelo: %s\nHostname: %s\nIp: %s\n%s: %.2f%%\nData: %s",
                     alertas.getNomeModelo().toUpperCase(),
                     alertas.getHostname().toUpperCase(),
+                    alertas.getIp(),
                     alertas.getTipoMetrica().toUpperCase(),
                     alertas.getValorAtual(),
                     alertas.getTimestamp().format(FORMATADOR_TIMESTAMP)
             );
         }else {
            notificacao = String.format(
-                    "CRÍTICO! Modelo %s que está na Máquina %s está com a %s em %.2f%% em %s",
+                    "Tipo: CRÍTICO!\nModelo: %s\nHostname: %s\nIp: %s\n%s: %.2f%%\nData: %s",
                     alertas.getNomeModelo().toUpperCase(),
                     alertas.getHostname().toUpperCase(),
+                    alertas.getIp(),
                     alertas.getTipoMetrica().toUpperCase(),
                     alertas.getValorAtual(),
                     alertas.getTimestamp().format(FORMATADOR_TIMESTAMP)

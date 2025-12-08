@@ -1,10 +1,17 @@
 package school.sptech.cortex.monitoramento.service;
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.s3.AmazonS3;
 import school.sptech.cortex.monitoramento.modelo.CapturaProcesso;
 import school.sptech.cortex.monitoramento.modelo.CapturaProcessoPrincipal;
-import school.sptech.cortex.monitoramento.util.CsvProcessoReader;
 
+import school.sptech.cortex.monitoramento.util.CsvProcessoReader;
+import school.sptech.cortex.monitoramento.util.ProcessoPrincipalWriter;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,7 +20,7 @@ import java.util.List;
 public class ProcessadorDeProcessos {
 
     public List<CapturaProcessoPrincipal> historicoProcesso(AmazonS3 s3Client, String nomeArquivo,
-                                                            String bucket, String nomeProcesso){
+                                                            String bucket, String nomeProcesso, LambdaLogger logger, String trusted) throws IOException {
 
         // pegar o csv do bucket
         // transformar em objeto
@@ -25,6 +32,7 @@ public class ProcessadorDeProcessos {
 
         List<LocalDateTime> dadosTimestamp = new ArrayList<>();
         List<CapturaProcessoPrincipal> listaPrincipal = new ArrayList<>();
+        List<CapturaProcesso> gravarLista = new ArrayList<>();
         for (int i = 0; i < listaCompleta.size();i++){
             // guardar todos os timestamps não repetidos
             CapturaProcesso completoIndex = listaCompleta.get(i);
@@ -39,13 +47,30 @@ public class ProcessadorDeProcessos {
             }
             //criar objetos processo principal quando encontrar um registro e adicionar em uma lista
             String[] processo = completoIndex.getProcesso().split("\\.");
+
             if(processo[0].equals(nomeProcesso)){
                 CapturaProcessoPrincipal novoPrincipal = new CapturaProcessoPrincipal(completoIndex.getTimestamp(),completoIndex.getCpu(),
-                        completoIndex.getRam(), completoIndex.getGpu(), false);
+                        completoIndex.getRam(), completoIndex.getGpu(), false, nomeProcesso);
 
                 listaPrincipal.add(novoPrincipal);
+
+                CapturaProcesso gravar = new CapturaProcesso(completoIndex.getFk_modelo(), completoIndex.getFk_zona(), completoIndex.getFk_empresa(),
+                        completoIndex.getTimestamp(), completoIndex.getProcesso(),completoIndex.getCpu(), completoIndex.getRam(),
+                        completoIndex.getDadosGravados(), completoIndex.getGpu(),completoIndex.getDiscoUso());
+                gravarLista.add(gravar);
             }
         }
+
+
+        if (!gravarLista.isEmpty()){
+            ProcessoPrincipalWriter writer = new ProcessoPrincipalWriter();
+            ByteArrayOutputStream csvGravar = writer.writeCsv(gravarLista);
+            InputStream csvInputStream = new ByteArrayInputStream(csvGravar.toByteArray());
+            s3Client.putObject(trusted, "processos/" + nomeArquivo, csvInputStream, null);
+        }
+
+
+
         // se o tamanho das duas listas for diferente: houve downtime
         if(dadosTimestamp.size() != listaPrincipal.size()){
             // comparar qual timestamp não existe na lista
@@ -71,7 +96,7 @@ public class ProcessadorDeProcessos {
                         CapturaProcessoPrincipal capturaInvisivel =new CapturaProcessoPrincipal(dadosTimestamp.get(j),
                                 0.0,
                                 0.0, 0.0,
-                                true);
+                                true, nomeProcesso);
 
                         index.add(j);
                         invisiveis.add(capturaInvisivel);

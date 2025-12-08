@@ -20,15 +20,18 @@ public class EstadoAtual {
     private Boolean gpu;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private String timestamp;
 
     @JsonProperty("idJira")
     private String idJira;
 
     @JsonProperty("ultimoTimestamp")
-    private LocalDateTime ultimoTimestamp;
+    private String ultimoTimestamp;
 
-    public EstadoAtual(Boolean cpu, Boolean ram, Boolean disco, Boolean gpu, LocalDateTime timestamp, String idJira, LocalDateTime ultimoTimestamp) {
+
+    public EstadoAtual() {}
+
+    public EstadoAtual(Boolean cpu, Boolean ram, Boolean disco, Boolean gpu, String timestamp, String idJira, String ultimoTimestamp) {
         this.cpu = cpu;
         this.ram = ram;
         this.disco = disco;
@@ -70,11 +73,11 @@ public class EstadoAtual {
         this.gpu = gpu;
     }
 
-    public LocalDateTime getTimestamp() {
+    public String getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -86,11 +89,11 @@ public class EstadoAtual {
         this.idJira = idJira;
     }
 
-    public LocalDateTime getUltimoTimestamp() {
+    public String getUltimoTimestamp() {
         return ultimoTimestamp;
     }
 
-    public void setUltimoTimestamp(LocalDateTime ultimoTimestamp) {
+    public void setUltimoTimestamp(String ultimoTimestamp) {
         this.ultimoTimestamp = ultimoTimestamp;
     }
 }

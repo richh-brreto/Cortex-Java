@@ -1,6 +1,7 @@
 package school.sptech.cortex.monitoramento.util;
 
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import school.sptech.cortex.monitoramento.modelo.Alerta;
 import school.sptech.cortex.monitoramento.modelo.JiraIssueFields;
 import school.sptech.cortex.monitoramento.modelo.JiraIssueGet;
@@ -35,9 +36,9 @@ public class JiraConcatenar {
 
     public JiraConcatenar() {
         // Leitura das configurações
-        this.jiraUrl = ConfiguracaoAmbiente.get("JIRA_URL");
-        this.jiraUsername = ConfiguracaoAmbiente.get("JIRA_USERNAME");
-        this.jiraApiToken = ConfiguracaoAmbiente.get("JIRA_API_TOKEN");
+       // this.jiraUrl =
+     //   this.jiraUsername =
+      //  this.jiraApiToken =
 
 
         // Verificações de configuração obrigatória
@@ -121,24 +122,15 @@ public class JiraConcatenar {
         String safeSummary = summary.replace("\"", "\\\"");
         String adfDescription = createAdfDescription(descriptionDetails);
 
-        List<String> categoriaContrario = new ArrayList<>();
-        for(String c : categoria){
 
-                String labelFormatada =  "\"" + c + "\"";
-                categoriaContrario.add(labelFormatada);
+        List<String> quotedLabels = new ArrayList<>();
+        for (String c : categoria) {
 
+            quotedLabels.add(String.format("\"%s\"", c));
         }
-        String categoriaFormatado = "";
-        for (int i = 0; i < categoriaContrario.size(); i++){
 
-            String daVez = categoriaContrario.get(i);
 
-            if(i == 0){
-                categoriaFormatado += daVez;
-            }else {
-                categoriaFormatado += "," + daVez;
-            }
-        }
+        String categoriaFormatado = String.join(",", quotedLabels);
 
 
         String jsonTemplate =
@@ -296,6 +288,44 @@ public class JiraConcatenar {
         } catch (IOException | InterruptedException e) {
             System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
             return null;
+        }
+    }
+
+    public void mudar(String idJira, LambdaLogger logger) throws IOException, InterruptedException {
+
+        String userPass = jiraUsername + ":" + jiraApiToken;
+        String authorizationHeader = "Basic " + Base64.getEncoder().encodeToString(userPass.getBytes(StandardCharsets.UTF_8));
+        String estadoNormal = "Normal (ticket antigo)"; // Valor alvo
+
+
+        String jsonPayload = String.format(
+                "{\"fields\": {\"" + "customfield_10060" + "\": {\"value\": \"%s\"}}}",
+                estadoNormal
+        );
+
+
+        String updateUrl = jiraUrl + "/rest/api/3/issue/" + idJira;
+
+        // Requisição PUT para atualizar o campo
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(updateUrl))
+                .header("Authorization", authorizationHeader)
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        // Envia a requisição usando o cliente da classe (this.httpClient)
+        HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // O Jira geralmente retorna 204 No Content em caso de sucesso na atualização
+        if (response.statusCode() == 204) {
+            logger.log(" Campo customizado atualizado para 'Normal' no ticket " + idJira);
+
+        } else {
+            logger.log("Falha ao atualizar o ticket " + idJira);
+            logger.log("Status: " + response.statusCode());
+            logger.log("Corpo da Resposta: " + response.body());
+
         }
     }
 }

@@ -12,13 +12,25 @@ public class CapturaProcessoPrincipal {
     private Double ram;
     private Double gpu;
     private Boolean downtime;
+    private String nome;
 
-    public CapturaProcessoPrincipal(LocalDateTime timestamp, Double cpu, Double ram, Double gpu, Boolean downtime) {
+    public CapturaProcessoPrincipal(LocalDateTime timestamp, Double cpu, Double ram, Double gpu, Boolean downtime, String nome) {
         this.timestamp = timestamp;
         this.cpu = cpu;
         this.ram = ram;
         this.gpu = gpu;
         this.downtime = downtime;
+        this.nome = nome;
+    }
+
+    public CapturaProcessoPrincipal(){}
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public LocalDateTime getTimestamp() {

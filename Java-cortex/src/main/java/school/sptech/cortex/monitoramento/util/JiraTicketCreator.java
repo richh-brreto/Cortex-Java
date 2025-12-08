@@ -1,6 +1,9 @@
 package school.sptech.cortex.monitoramento.util;
 
 
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import school.sptech.cortex.monitoramento.modelo.Alerta;
 import school.sptech.cortex.monitoramento.modelo.Parametro;
 
@@ -20,6 +23,7 @@ import java.util.Objects;
 
 public class JiraTicketCreator {
     private static final DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    private static final Log log = LogFactory.getLog(JiraTicketCreator.class);
     // VARIÁVEIS DE CONFIGURAÇÃO
     private final String jiraUrl;
     private final String jiraUsername;
@@ -33,12 +37,11 @@ public class JiraTicketCreator {
 
     public JiraTicketCreator() {
         // Leitura das configurações
-        this.jiraUrl = ConfiguracaoAmbiente.get("JIRA_URL");
-        this.jiraUsername = ConfiguracaoAmbiente.get("JIRA_USERNAME");
-        this.jiraApiToken = ConfiguracaoAmbiente.get("JIRA_API_TOKEN");
-        this.jiraProjectKey = ConfiguracaoAmbiente.get("JIRA_PROJECT_KEY");
-        this.jiraIssueTypeName = ConfiguracaoAmbiente.get("JIRA_ISSUE_TYPE_NAME");
-        this.jiraPriorityName = ConfiguracaoAmbiente.get("JIRA_PRIORITY_NAME");
+       // this.jiraUrl =
+      //  this.jiraUsername =
+     //   this.jiraApiToken =
+      //  this.jiraIssueTypeName =
+      //  this.jiraPriorityName =
 
 
         // Verificações de configuração obrigatória
@@ -58,19 +61,19 @@ public class JiraTicketCreator {
     }
 
 
-    public String criarTicketsCriticos(Alerta alertas) {
+    public String criarTicketsCriticos(Alerta alertas, LambdaLogger logger) {
 
-        System.out.println("--- Iniciando verificação de alertas CRÍTICOS para o Jira ---");
+        logger.log("--- Iniciando verificação de alertas CRÍTICOS para o Jira ---");
 
             // 1. FILTRAGEM
 
             try {
 
                 String timestamp = alertas.getTimestamp().format(FORMATADOR_TIMESTAMP);
-                // 2. Formata a mensagem de negócio para o Jira
-                String summary = String.format("ALERTA CRÍTICO: Modelo %s Máquina %s - Última Atualização %s",
-                        alertas.getNomeModelo(), alertas.getHostname(),timestamp);
 
+                String summary = String.format("ALERTA CRÍTICO: Modelo %s Máquina %s - Última Atualização %s",
+                        alertas.getNomeModelo(), alertas.getHostname(), timestamp);
+                logger.log("Summary: " + summary);
                 String description = String.format(
                         "Alerta de Utilização Crítica - Cortex\n\n" +
                                 "O modelo: %s - na máquina: %s ultrapassou o limite crítico de:\n" +
@@ -79,17 +82,18 @@ public class JiraTicketCreator {
                         timestamp
 
                 );
+                logger.log("Descricao: " + description);
 
                 String categoria = alertas.getTipoMetrica().toLowerCase();
-
+                logger.log("Categoria: " + categoria);
                 String identificador = alertas.getFk_modelo() + ";" + alertas.getFk_zona() + ";" + alertas.getFk_empresa();
-
+                logger.log("Indentificador: " + identificador);
                 // 3. Monta o JSON de Payload
-                String jsonPayload = buildIssueJson(summary, description, categoria, identificador);
-
+                String jsonPayload = buildIssueJson(summary, description, categoria, identificador, logger);
+                logger.log("JsonPayload: " + jsonPayload);
                 // 4. Envia a requisição
-                String keyJira = enviarRequisicao(jsonPayload);
-
+                String keyJira = enviarRequisicao(jsonPayload, logger);
+                logger.log("key: " + keyJira);
                 if(keyJira != null){
                     return keyJira;
                 }else {
@@ -100,6 +104,7 @@ public class JiraTicketCreator {
 
             } catch (Exception e) {
                 System.err.println("ERRO ao processar Alerta para o Jira ");
+                logger.log(e.getMessage());
 
                 return null;
             }
@@ -111,10 +116,11 @@ public class JiraTicketCreator {
     /**
      * Monta o JSON (Payload) para o Issue no formato ADF, incluindo campos obrigatórios.
      */
-    private String buildIssueJson(String summary, String descriptionDetails, String categoria, String identificador) {
+    private String buildIssueJson(String summary, String descriptionDetails, String categoria, String identificador, LambdaLogger logger) {
         String safeSummary = summary.replace("\"", "\\\"");
+        logger.log("safe summary:" + safeSummary);
         String adfDescription = createAdfDescription(descriptionDetails);
-
+        logger.log("adf: " + adfDescription);
         String jsonTemplate =
                 "{" +
                         "\"fields\": {" +
@@ -131,8 +137,7 @@ public class JiraTicketCreator {
                         "\"customfield_10039\": \"%s\"" +
                         "}" +
                         "}";
-
-        return String.format(
+        String formatado = String.format(
                 jsonTemplate,
                 jiraProjectKey,
                 safeSummary,
@@ -144,8 +149,10 @@ public class JiraTicketCreator {
                 identificador,
                 "Incidente",
                 "Critical",
-               "Service requests"
+                "Service requests"
         );
+        logger.log("Formatado: " + formatado);
+        return formatado;
     }
 
 
@@ -190,10 +197,12 @@ public class JiraTicketCreator {
     /**
      * Envia a requisição HTTP POST para a API do Jira para criar um Issue.
      */
-    private String enviarRequisicao(String jsonPayload) {
+    private String enviarRequisicao(String jsonPayload, LambdaLogger logger) {
         try {
             // Cria o cabeçalho de autenticação Basic com o username e API Token
+            logger.log("Enviando requisiçao...");
             String authString = jiraUsername + ":" + jiraApiToken;
+
             String authHeader = "Basic " + Base64.getEncoder().encodeToString(authString.getBytes(StandardCharsets.UTF_8));
 
             URI uri = URI.create(jiraUrl + "/rest/api/3/issue");
@@ -223,11 +232,11 @@ public class JiraTicketCreator {
             }
 
         } catch (HttpTimeoutException e) {
-            System.err.println("ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
+            logger.log("ERRO DE CONEXÃO: Tempo limite (Timeout) atingido ao tentar acessar Jira.");
 
             return null;
         } catch (IOException | InterruptedException e) {
-            System.err.println("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
+            logger.log("ERRO GERAL na requisição HTTP para o Jira: " + e.getMessage());
 
             return null;
         }

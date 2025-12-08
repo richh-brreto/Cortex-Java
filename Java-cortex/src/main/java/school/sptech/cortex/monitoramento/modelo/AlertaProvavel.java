@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public class AlertaProvavel {
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private String timestamp;
 
     // Mapeia o campo "document" do JSON para o atributo "cpf"
     @JsonProperty("medida")
@@ -15,24 +15,16 @@ public class AlertaProvavel {
 
     public AlertaProvavel(){}
 
-    public AlertaProvavel(LocalDateTime timestamp, Double medida) {
+    public AlertaProvavel(String timestamp, Double medida) {
         this.timestamp = timestamp;
         this.medida = medida;
     }
 
-    @Override
-    public String toString() {
-        return "alertaProvavel{" +
-                "timestamp=" + timestamp +
-                ", medida=" + medida +
-                '}';
-    }
-
-    public LocalDateTime getTimestamp() {
+    public String getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
 

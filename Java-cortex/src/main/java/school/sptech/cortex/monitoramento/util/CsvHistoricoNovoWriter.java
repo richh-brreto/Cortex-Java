@@ -18,7 +18,7 @@ public class CsvHistoricoNovoWriter {
                 "gpu", "valorCpu" , "valorRam" , "valorGpu" , "valorDisco", "timestamp",
                 "downtime_server","downtime_processo","cpu_processo","ram_processo","gpu_processo"));
 
-
+        writer.flush();
         csvPrinter.flush();
         csvPrinter.close();
 
