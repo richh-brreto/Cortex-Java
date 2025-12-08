@@ -69,51 +69,51 @@ public class ProcessadorDeProcessos {
             s3Client.putObject(trusted, "processos/" + nomeArquivo, csvInputStream, null);
         }
 
-
+        return listaPrincipal;
 
         // se o tamanho das duas listas for diferente: houve downtime
-        if(dadosTimestamp.size() != listaPrincipal.size()){
+      //  if(dadosTimestamp.size() != listaPrincipal.size()){
             // comparar qual timestamp não existe na lista
             // criar registros de downtime d processo
             // adicionar na posição
-            Boolean tem = false;
-            List<CapturaProcessoPrincipal> invisiveis = new ArrayList<>();
-            List<Integer> index = new ArrayList<>();
-            for (int j = 0; j < dadosTimestamp.size();j++){
-                for(int i = 0; i < listaPrincipal.size(); i++){
-                    if(dadosTimestamp.get(j).isAfter(listaPrincipal.get(i).getTimestamp()) ||
-                            dadosTimestamp.get(j).equals(listaPrincipal.get(i).getTimestamp())){
+         //   Boolean tem = false;
+           // List<CapturaProcessoPrincipal> invisiveis = new ArrayList<>();
+          //  List<Integer> index = new ArrayList<>();
+         //   for (int j = 0; j < dadosTimestamp.size();j++){
+          //      for(int i = 0; i < listaPrincipal.size(); i++){
+          //          if(dadosTimestamp.get(j).isAfter(listaPrincipal.get(i).getTimestamp()) ||
+                  //          dadosTimestamp.get(j).equals(listaPrincipal.get(i).getTimestamp())){
 
-                        if(dadosTimestamp.get(j).equals(listaPrincipal.get(i).getTimestamp())){
-                            tem = true;
-                            break;
-                        }
+                  //      if(dadosTimestamp.get(j).equals(listaPrincipal.get(i).getTimestamp())){
+                 //           tem = true;
+                    //        break;
+                     //   }
 
-                        break;
-                    }
-                    }
-                    if(!tem){
-                        CapturaProcessoPrincipal capturaInvisivel =new CapturaProcessoPrincipal(dadosTimestamp.get(j),
-                                0.0,
-                                0.0, 0.0,
-                                true, nomeProcesso);
+                     //   break;
+                 //   }
+                 //   }
+                 //   if(!tem){
+                 //       CapturaProcessoPrincipal capturaInvisivel =new CapturaProcessoPrincipal(dadosTimestamp.get(j),
+                      //          0.0,
+                     //           0.0, 0.0,
+                     //           true, nomeProcesso);
 
-                        index.add(j);
-                        invisiveis.add(capturaInvisivel);
-                    }
-                    tem = false;
-
-
-            }
-            for(int m = 0; m < index.size();m++){
-                listaPrincipal.add(index.get(m),invisiveis.get(m));
-            }
+                       // index.add(j);
+                       // invisiveis.add(capturaInvisivel);
+                 //   }
+                 //   tem = false;
 
 
-            return listaPrincipal;
-        }else {
-            return listaPrincipal;
-        }
+           // }
+           // for(int m = 0; m < index.size();m++){
+          //      listaPrincipal.add(index.get(m),invisiveis.get(m));
+          //  }
+
+
+         //   return listaPrincipal;
+       // }else {
+           // return listaPrincipal;
+       // }
     }
 
 }

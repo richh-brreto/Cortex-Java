@@ -36,9 +36,9 @@ public class JiraConcatenar {
 
     public JiraConcatenar() {
         // Leitura das configurações
-       // this.jiraUrl =
-     //   this.jiraUsername =
-      //  this.jiraApiToken =
+       this.jiraUrl =
+         this.jiraUsername =
+          this.jiraApiToken =
 
 
         // Verificações de configuração obrigatória

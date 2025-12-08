@@ -192,6 +192,8 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
 
 
             ProcessadorDeCapturasService processador = new ProcessadorDeCapturasService();
+
+            List<HistoricoAlerta> salvar = new ArrayList<>();
             for(int i = 0; i < capturas.size();i++){
 
                 CapturaSistema c = capturas.get(i);
@@ -562,7 +564,7 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
                     }else{
                         if(estadoAlerta.getIdJira() != null){
                            concatenar.mudar(estadoAlerta.getIdJira(), logger);
-                           salvarCsvHistorico(fk_modelo,fk_zona,fk_empresa,estadoAlerta.getIdJira(),historico, logger);
+                            salvarCsvHistorico(fk_modelo,fk_zona,fk_empresa,estadoAlerta.getIdJira(),historico, logger);
                         }
                         // limpar JSON
                         logger.log("limoandi json");
@@ -574,6 +576,11 @@ public class Aplicacao implements RequestHandler<S3Event, String> {
 
 
             }
+            if (estadoAlerta.getIdJira() != null) {
+                logger.log("Alerta ativo ao final do processamento das capturas. Salvando histórico atual para continuação.");
+                salvarCsvHistorico(fk_modelo, fk_zona, fk_empresa, estadoAlerta.getIdJira(), historico, logger);
+            }
+
             // ESCREVER MEU CSV
             logger.log("fim do loop");
             logger.log("cpu" + estadoAlerta.getCpu());

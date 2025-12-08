@@ -37,11 +37,12 @@ public class JiraTicketCreator {
 
     public JiraTicketCreator() {
         // Leitura das configurações
-       // this.jiraUrl =
-      //  this.jiraUsername =
-     //   this.jiraApiToken =
-      //  this.jiraIssueTypeName =
-      //  this.jiraPriorityName =
+        this.jiraUrl =
+          this.jiraUsername =
+          this.jiraApiToken =
+        this.jiraProjectKey =
+          this.jiraIssueTypeName =
+         this.jiraPriorityName =
 
 
         // Verificações de configuração obrigatória

@@ -6,9 +6,9 @@ import java.sql.SQLException;
 
 public class MySQLConnection {
 
-   // private static final String URL =
-    //private static final String USUARIO =
-   // private static final String SENHA =
+    private static final String URL =
+    private static final String USUARIO = 
+     private static final String SENHA =
 
     public static Connection conectar() throws SQLException {
         try {

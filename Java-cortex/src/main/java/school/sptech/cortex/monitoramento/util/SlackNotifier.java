@@ -13,7 +13,7 @@ import java.util.List;
 
 
 public class SlackNotifier {
-   // private static final String SLACK_WEBHOOK_URL =
+   private static final String SLACK_WEBHOOK_URL =
     private static final java.time.format.DateTimeFormatter FORMATADOR_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     // O cliente HTTP é criado uma vez e reutilizado
     private final HttpClient httpClient = HttpClient.newBuilder().build();
